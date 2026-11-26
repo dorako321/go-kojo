@@ -1,0 +1,168 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 正規表現の一致位置が縦に揃うよう各行を空白で整列する / ファイルまたは標準入力のテキストを読み、-e で指定した正規表現の最初の一致が各行で同じ表示桁に来るよう、一致より前に空白を足して整列して出力する。表示幅は全角2桁で数え、一致しない行はそのまま出す。-e のほか、一致の前に入れる最小余白を -p で指定できる。例: -e '=' で「a=1」「long名=2」を入力すると「a    =1」「long名=2」のように = が揃う。コマンド名は alignre",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "alignre",
+    "summary": "alignre pads lines with spaces so the first match of a regex starts at the same display column on every line.",
+    "kind": "convert",
+    "usage": "alignre -e REGEX [-p N] [file...]",
+    "flags": [
+      {
+        "name": "e",
+        "type": "string",
+        "default": "",
+        "help": "regular expression (Go syntax) to align on (required)"
+      },
+      {
+        "name": "p",
+        "type": "int",
+        "default": "0",
+        "help": "minimum number of spaces inserted before the match"
+      }
+    ],
+    "behavior": [
+      "B1: -e is required. If it is missing or empty, print \"alignre: -e is required\" to stderr and exit 2. If -p is negative, print \"alignre: -p must be \u003e= 0\" to stderr and exit 2. Bad flags exit 2.",
+      "B2: Compile -e with Go regexp.Compile. On failure print \"alignre: invalid regex: \" followed by the error text to stderr, nothing to stdout, exit 1.",
+      "B3: Input is the file arguments read in order, or stdin if there are none. All lines of all files form one list. Lines are split on \"\\n\"; a final newline does not create an extra line; empty input has zero lines. \"\\r\" is not special.",
+      "B4: If a file cannot be read, print \"alignre: \" followed by the error text to stderr, write nothing to stdout, exit 1 (all input is read before any output).",
+      "B5: For each line find the leftmost first match with FindStringIndex. The prefix is the text before the match start; its width is go-runewidth StringWidth of the prefix (wide characters count 2). An empty match counts as a match.",
+      "B6: The target column is the maximum prefix width over all matching lines plus the -p value. Each matching line gets (target - its prefix width) spaces inserted immediately before the match. Lines without a match are unchanged.",
+      "B7: Every output line, including the last, is followed by \"\\n\". Exit 0 on success; empty input prints nothing."
+    ],
+    "deps": [
+      "github.com/mattn/go-runewidth"
+    ],
+    "network": false,
+    "cases": [
+      {
+        "name": "basic wide char",
+        "args": [
+          "-e",
+          "="
+        ],
+        "stdin": "a=1\nlong名=2\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "a     =1\nlong名=2\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "padding option",
+        "args": [
+          "-e",
+          "=",
+          "-p",
+          "2"
+        ],
+        "stdin": "a=1\nlong名=2\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "a       =1\nlong名  =2\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "non-matching line unchanged",
+        "args": [
+          "-e",
+          "="
+        ],
+        "stdin": "ab=1\nnone\nc=2\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "ab=1\nnone\nc =2\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file argument",
+        "args": [
+          "-e",
+          ":",
+          "in.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "in.txt",
+            "content": "x:1\nyyy:2\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "x  :1\nyyy:2\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "empty input",
+        "args": [
+          "-e",
+          "="
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing -e",
+        "args": [],
+        "stdin": "a=1\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "alignre:"
+          ]
+        }
+      },
+      {
+        "name": "invalid regex",
+        "args": [
+          "-e",
+          "("
+        ],
+        "stdin": "a=1\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "alignre: invalid regex"
+          ]
+        }
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "-e",
+          "=",
+          "nofile.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "alignre:"
+          ]
+        }
+      }
+    ]
+  }
+}

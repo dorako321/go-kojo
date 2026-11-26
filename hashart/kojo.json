@@ -1,0 +1,140 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: ファイルのハッシュを色付きの視覚指紋として表示する / 引数のファイル（なければ標準入力）の SHA-256 を計算し、ssh-keygen の randomart と同じ「ドランクンビショップ」方式で 17x9 の枠付きアスキーアートを描き、訪問回数ごとに ANSI 256色で色付けして標準出力に出す。下に16進ハッシュも1行出し、2つのファイルが同一かを目で素早く比べられる。例：hashart a.iso と hashart b.iso を並べて実行すると、同一なら模様も色も完全に一致し、1バイト違えば全く別の模様になる。フラグは -n（色なし）のみ。コマンド名は hashart",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "hashart",
+    "summary": "hashart prints a colored 17x9 drunken-bishop randomart and the hex SHA-256 of a file or stdin.",
+    "kind": "display",
+    "usage": "hashart [-n] [file]",
+    "flags": [
+      {
+        "name": "n",
+        "type": "bool",
+        "default": "false",
+        "help": "no color: print plain ASCII without escape codes"
+      }
+    ],
+    "behavior": [
+      "B1: With no file argument, read all of stdin; with one file argument, read that file. Compute the SHA-256 (32 bytes) of the data. Empty input is valid.",
+      "B2: The grid is 17 columns (x 0..16) by 9 rows (y 0..8), all visit counts 0. The bishop starts at x=8, y=4. For each digest byte in order, for i = 0..3, take b = (byte \u003e\u003e (2*i)) \u0026 3 (least significant bits first): x += 1 if b\u00261 is set else x -= 1; y += 1 if b\u00262 is set else y -= 1; then clamp x to 0..16 and y to 0..8; then add 1 to the visit count of cell (x,y). The start cell is not counted initially.",
+      "B3: Cell character: the ramp is the 15 characters \" .o+=*BOX@%\u0026#/^\" (first is a space) indexed by min(count,14). Then the start cell (8,4) is drawn as S and the final cell where the bishop ends is drawn as E; E wins if they are the same cell.",
+      "B4: Stdout is: a top line \"+\" + 17 \"-\" + \"+\"; then 9 rows, each \"|\" + 17 cell characters + \"|\"; then a bottom line identical to the top; then one line with the 64-character lowercase hex digest. Every line ends with a newline. Frame and hex lines are never colored.",
+      "B5: Without -n, every cell whose character is not a space is written as ESC \"[38;5;\" N \"m\" char ESC \"[0m\" (ESC is byte 0x1b); space cells are written as a plain space. For ramp characters N = palette[min(count,14)-1] with palette = 27,33,39,45,51,48,46,82,118,154,190,226,208,196. S uses N=46 and E uses N=196. With -n no escape codes are written at all.",
+      "B6: If the file cannot be read, print \"hashart: \" followed by the error text to stderr, print nothing to stdout, and exit 1.",
+      "B7: If more than one non-flag argument is given, print \"hashart: too many arguments\" and the line \"usage: hashart [-n] [file]\" to stderr and exit 2. An unknown flag is a usage error with exit 2 (the flag package's message on stderr). On success exit 0."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "empty stdin plain",
+        "args": [
+          "-n"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "regex": "^\\+-{17}\\+\\n(\\|[^\\x1b\\n]{17}\\|\\n){9}\\+-{17}\\+\\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\\n$"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file abc plain",
+        "args": [
+          "-n",
+          "abc.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "abc.txt",
+            "content": "abc"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "regex": "^\\+-{17}\\+\\n(\\|[^\\x1b\\n]{17}\\|\\n){9}\\+-{17}\\+\\nba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\\n$"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "stdin abc colored",
+        "args": [],
+        "stdin": "abc",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "regex": "\\x1b\\[38;5;\\d+m[^\\x1b]\\x1b\\[0m[^\\n]*\\|\\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "colored hex line plain",
+        "args": [],
+        "stdin": "abc",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "contains": [
+            "\nba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\n"
+          ]
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nofile.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "hashart: "
+          ]
+        }
+      },
+      {
+        "name": "two files",
+        "args": [
+          "a",
+          "b"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "hashart: too many arguments"
+          ]
+        }
+      },
+      {
+        "name": "unknown flag",
+        "args": [
+          "-z"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "flag provided but not defined"
+          ]
+        }
+      }
+    ]
+  }
+}

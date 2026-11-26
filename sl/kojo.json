@@ -1,0 +1,79 @@
+{
+  "factory": "go-kojo",
+  "request": "slコマンド、SLのアスキーアートが発信するだけのもの",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "sl",
+    "summary": "sl prints a small original ASCII art steam locomotive to standard output.",
+    "kind": "display",
+    "usage": "sl",
+    "flags": [],
+    "behavior": [
+      "B1: With no arguments, print exactly these 6 lines to stdout, each ended by a newline, then exit 0: line1 '     (  )', line2 '    (  )', line3 '  ___    _______', line4 ' |   |__|  _  _ |', line5 ' |__________________|', line6 '  (o)(o)(o)(o)(o)'.",
+      "B2: Standard input is never read; any stdin content is ignored.",
+      "B3: If any positional argument is given, print 'sl: unexpected argument: \u003cfirst argument\u003e' to stderr, print nothing to stdout, and exit 2.",
+      "B4: An unknown flag prints the flag package error and usage to stderr and exits 2.",
+      "B5: Nothing is written to stderr on success."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "main art",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "     (  )\n    (  )\n  ___    _______\n |   |__|  _  _ |\n |__________________|\n  (o)(o)(o)(o)(o)\n"
+        },
+        "stderr": {
+          "exact": ""
+        }
+      },
+      {
+        "name": "stdin ignored",
+        "args": [],
+        "stdin": "hello\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "contains": [
+            "(o)(o)(o)(o)(o)"
+          ]
+        },
+        "stderr": {}
+      },
+      {
+        "name": "extra argument",
+        "args": [
+          "foo"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "sl: unexpected argument: foo"
+          ]
+        }
+      },
+      {
+        "name": "unknown flag",
+        "args": [
+          "-x"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      }
+    ]
+  }
+}

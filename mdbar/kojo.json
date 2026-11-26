@@ -1,0 +1,174 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: CSVをMarkdown表にし、数値列を横棒にして添える / ファイルまたは標準入力のCSV（1行目はヘッダ）を読み、Markdownの表として出力する。-c で指定した列名（または1始まりの列番号）の数値を、最大値を基準に -w 文字幅（既定20）の █ の横棒にして、末尾に追加の列として付ける。数値でないセルは棒を空にし、表の列幅は全角を考慮して揃える。例：「name,sales」「東京,30」「大阪,15」を -c sales で入れると、東京の行には20個、大阪の行には10個の █ が付いた表が出る。コマンド名は mdbar",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "mdbar",
+    "summary": "mdbar reads CSV from a file or stdin and prints a Markdown table with an extra bar column for one numeric column.",
+    "kind": "convert",
+    "usage": "mdbar -c column [-w width] [file]",
+    "flags": [
+      {
+        "name": "c",
+        "type": "string",
+        "default": "",
+        "help": "column to graph: header name or 1-based number (required)"
+      },
+      {
+        "name": "w",
+        "type": "int",
+        "default": "20",
+        "help": "bar width for the largest value (1 or more)"
+      }
+    ],
+    "behavior": [
+      "B1: Input is the single file argument, or stdin if none. More than one argument, a missing or empty -c, or -w less than 1 prints 'mdbar: ' plus a message and usage to stderr, exit 2.",
+      "B2: Parse with encoding/csv defaults (a row with a different field count than the header is invalid). Unreadable file or invalid CSV prints 'mdbar: ' plus the error to stderr, nothing to stdout, exit 1. No records at all prints 'mdbar: empty input' to stderr, exit 1.",
+      "B3: The first record is the header. The target column is the first header cell exactly equal to the -c value; else, if -c is an integer from 1 to the column count, that 1-based column; else print 'mdbar: unknown column: \u003cvalue\u003e' to stderr, exit 1.",
+      "B4: A cell is numeric if, after trimming spaces, strconv.ParseFloat accepts it and the result is not NaN or infinite. max is the largest numeric value in the target column. If no numeric value exists or max \u003c= 0, all bars are empty.",
+      "B5: Bar for numeric v \u003e 0 is int(math.Round(v/max*w)) copies of the character █ (U+2588). Values \u003c= 0, non-numeric and empty cells get an empty bar. The max row gets exactly w characters.",
+      "B6: Output has the original columns plus a last column headed 'bar'. In cell text, '|' becomes '\\|' and newlines become a space. Each line is '| ' + cells joined by ' | ' + ' |'. Every cell is padded with trailing spaces to its column width.",
+      "B7: Column width is the largest display width of its cells (header included), at least 3. Display width uses runewidth.StringWidth with runewidth.DefaultCondition.EastAsianWidth set to false (full-width CJK counts 2). In the bar column, width is the number of █ characters (each counts 1), not runewidth; its header 'bar' counts 3.",
+      "B8: Line 2 is the separator: each cell is '-' repeated to the column width, in the same '| ... |' layout. Then one line per data row. Every line ends with a newline. A header-only input prints just the header and separator, with all-empty bars handled by B4.",
+      "B9: Exit 0 on success."
+    ],
+    "deps": [
+      "github.com/mattn/go-runewidth"
+    ],
+    "network": false,
+    "cases": [
+      {
+        "name": "basic",
+        "args": [
+          "-c",
+          "sales",
+          "-w",
+          "4"
+        ],
+        "stdin": "name,sales\n東京,30\n大阪,15\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "| name | sales | bar  |\n| ---- | ----- | ---- |\n| 東京 | 30    | ████ |\n| 大阪 | 15    | ██   |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "colnum_nonnumeric",
+        "args": [
+          "-c",
+          "2",
+          "-w",
+          "10"
+        ],
+        "stdin": "item,qty\na,5\nb,x\nc,10\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "| item | qty | bar        |\n| ---- | --- | ---------- |\n| a    | 5   | █████      |\n| b    | x   |            |\n| c    | 10  | ██████████ |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "zero_max",
+        "args": [
+          "-c",
+          "v",
+          "-w",
+          "3"
+        ],
+        "stdin": "a,v\nx,0\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "| a   | v   | bar |\n| --- | --- | --- |\n| x   | 0   |     |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file_input",
+        "args": [
+          "-c",
+          "n",
+          "-w",
+          "2",
+          "d.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "d.csv",
+            "content": "n\n4\n2\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "| n   | bar |\n| --- | --- |\n| 4   | ██  |\n| 2   | █   |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "unknown_column",
+        "args": [
+          "-c",
+          "zzz"
+        ],
+        "stdin": "a,b\n1,2\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "mdbar: unknown column: zzz"
+          ]
+        }
+      },
+      {
+        "name": "missing_c",
+        "args": [],
+        "stdin": "a,b\n1,2\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "mdbar: "
+          ]
+        }
+      },
+      {
+        "name": "empty_input",
+        "args": [
+          "-c",
+          "a"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "mdbar: empty input"
+          ]
+        }
+      },
+      {
+        "name": "missing_file",
+        "args": [
+          "-c",
+          "a",
+          "nope.csv"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "mdbar: "
+          ]
+        }
+      }
+    ]
+  }
+}

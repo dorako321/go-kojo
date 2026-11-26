@@ -1,0 +1,159 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: CSVの指定列のBase64セルを復号してCSVで出力する / CSVをファイルまたは標準入力から読み、-c で指定した列番号（1始まり、カンマ区切りで複数可）のセルをBase64として復号し、同じ形のCSVを標準出力へ出す。-u を付けるとURLセーフ形式も受け付ける。復号できないセルや有効なUTF-8でないセルは元の値のまま残し、改行を含む結果は正しく引用符で囲む。例: 行「1,SGVsbG8=」を -c 2 で処理すると「1,Hello」になる。コマンド名は b64col",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "b64col",
+    "summary": "b64col reads CSV from a file or stdin and Base64-decodes the cells in the chosen columns, writing CSV to stdout.",
+    "kind": "convert",
+    "usage": "b64col [-u] -c cols [file]",
+    "flags": [
+      {
+        "name": "c",
+        "type": "string",
+        "default": "",
+        "help": "comma-separated 1-based column numbers to decode (required)"
+      },
+      {
+        "name": "u",
+        "type": "bool",
+        "default": "false",
+        "help": "also accept URL-safe Base64 (- and _)"
+      }
+    ],
+    "behavior": [
+      "B1: The input is the single file argument, or stdin if there is no file argument. More than one file argument is a usage error: print \"b64col: too many arguments\" to stderr, exit 2.",
+      "B2: -c is required. If it is missing or empty, print \"b64col: -c is required\" to stderr and exit 2. Split the value on commas; each part must be a base-10 integer \u003e= 1, otherwise print \"b64col: invalid column list\" to stderr and exit 2. Duplicate numbers are allowed and have no extra effect.",
+      "B3: Parse the input with encoding/csv, FieldsPerRecord = -1 (rows may have different numbers of fields), default quoting rules, no trimming. Read all records before writing anything. On a parse error or an unreadable file, print \"b64col: \" followed by the error text to stderr, write nothing to stdout, exit 1.",
+      "B4: For each row and each selected column that exists in that row, try to decode the cell with base64.StdEncoding (padding required, no whitespace trimming). If -u is given and that fails, also try base64.URLEncoding. A cell containing a CR or LF character is never decoded. Without -u, the characters - and _ make a cell undecodable.",
+      "B5: If decoding succeeds and the decoded bytes are valid UTF-8 (utf8.Valid), the cell is replaced by the decoded text. Otherwise the cell keeps its original value. An empty cell stays empty.",
+      "B6: Rows that have fewer fields than a selected column number are left unchanged for that column; other columns and rows keep their shape and order.",
+      "B7: Write all rows with encoding/csv Writer (comma separator, LF line endings), so fields with newlines, commas or quotes are quoted as needed. Flush, then exit 0.",
+      "B8: Empty input produces no output and exit 0."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "basic",
+        "args": [
+          "-c",
+          "2"
+        ],
+        "stdin": "1,SGVsbG8=\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "1,Hello\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "urlsafe accepted with -u",
+        "args": [
+          "-u",
+          "-c",
+          "2"
+        ],
+        "stdin": "a,SGk_\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "a,Hi?\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "urlsafe rejected without -u",
+        "args": [
+          "-c",
+          "2"
+        ],
+        "stdin": "a,SGk_\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "a,SGk_\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "newline result is quoted",
+        "args": [
+          "-c",
+          "2"
+        ],
+        "stdin": "1,SGVsbG8Kd29ybGQ=\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "1,\"Hello\nworld\"\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "invalid utf8 kept, short row passed, multiple columns",
+        "args": [
+          "-c",
+          "2,3"
+        ],
+        "stdin": "1,/w==,SGk=\nz\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "1,/w==,Hi\nz\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file input",
+        "args": [
+          "-c",
+          "1",
+          "in.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "in.csv",
+            "content": "SGk=,x\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "Hi,x\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing -c",
+        "args": [],
+        "stdin": "a,b\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "b64col: "
+          ]
+        }
+      },
+      {
+        "name": "column zero is usage error",
+        "args": [
+          "-c",
+          "0"
+        ],
+        "stdin": "a,b\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "b64col: invalid column list"
+          ]
+        }
+      }
+    ]
+  }
+}

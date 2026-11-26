@@ -1,0 +1,138 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: .envの重複キー・全角文字・末尾空白を報告する / .envファイルを読み（省略時は標準入力）、不正なキー名、重複キー、引用符なし値の末尾空白、値に混じった全角文字や全角空白、閉じていない引用符を行ごとに「行番号: 内容」で報告する。値の文字数と表示幅の食い違いを根拠に全角を検出する。問題があれば終了コード1。例: 「NAME=太郎 」の行は「1: 全角文字と末尾空白」と出る。コマンド名は envchk",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "envchk",
+    "summary": "envchk checks a .env file (or stdin) line by line for invalid keys, duplicate keys, trailing spaces, full-width characters and unclosed quotes.",
+    "kind": "inspect",
+    "usage": "envchk [file]",
+    "flags": [],
+    "behavior": [
+      "B1: At most one positional argument is allowed. With none, read stdin; with one, read that file. More than one argument prints 'envchk: usage: envchk [file]' to stderr and exits 2. If the file cannot be read, print 'envchk: ' followed by the error text to stderr and exit 1.",
+      "B2: Split input on newline; strip one trailing carriage return from each line. Line numbers start at 1. A line that is empty or whitespace only, or whose first non-space/tab character is '#', is skipped (it still counts for numbering). Empty input prints nothing and exits 0.",
+      "B3: For other lines, remove leading spaces/tabs, then remove a leading 'export ' if present. Split at the first '='; key is the text before it, value the text after it. If there is no '=', the whole text is the key and the value is empty.",
+      "B4: Problem 不正なキー名: the key does not match ^[A-Za-z_][A-Za-z0-9_]*$ (an empty key is invalid).",
+      "B5: Problem 重複キー: the key is valid and was already seen on an earlier line. Only valid keys are recorded as seen.",
+      "B6: Problem 全角文字: take the value, remove all ASCII characters (code points below 0x80); if the remainder's display width (github.com/mattn/go-runewidth StringWidth, with DefaultCondition.EastAsianWidth set to false) differs from its rune count, the problem applies. Applies to quoted and unquoted values alike.",
+      "B7: Problem 末尾空白: the value does not start with ' or \" and ends with an ASCII space or tab. Values starting with a quote never get this problem.",
+      "B8: Problem 閉じていない引用符: the value starts with ' or \" and the same quote character does not appear again anywhere later in the value.",
+      "B9: All problems of a line are collected in this fixed order: 不正なキー名, 重複キー, 全角文字, 末尾空白, 閉じていない引用符. If there is at least one, print to stdout 'N: ' followed by the names joined with 'と', then a newline. Example: 1: 全角文字と末尾空白.",
+      "B10: Exit 0 if no problem line was printed; exit 1 if at least one was printed."
+    ],
+    "deps": [
+      "github.com/mattn/go-runewidth"
+    ],
+    "network": false,
+    "cases": [
+      {
+        "name": "clean",
+        "args": [],
+        "stdin": "A=1\nB=\"x y\"\n# c\n\nexport C=3\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "fullwidth and trailing",
+        "args": [],
+        "stdin": "NAME=太郎 \n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: 全角文字と末尾空白\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "invalid keys",
+        "args": [],
+        "stdin": "1A=x\nA-B=y\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: 不正なキー名\n2: 不正なキー名\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "duplicate",
+        "args": [],
+        "stdin": "A=1\nB=2\nA=3\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "3: 重複キー\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "unclosed quote",
+        "args": [],
+        "stdin": "A=\"abc\nB='x'\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: 閉じていない引用符\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file with fullwidth space and quoted trailing",
+        "args": [
+          "a.env"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.env",
+            "content": "A=a　b\nB=\"x  \"\nC=x  \n"
+          }
+        ],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: 全角文字\n3: 末尾空白\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nope.env"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "envchk: "
+          ]
+        }
+      },
+      {
+        "name": "too many args",
+        "args": [
+          "a",
+          "b"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "envchk: usage"
+          ]
+        }
+      }
+    ]
+  }
+}

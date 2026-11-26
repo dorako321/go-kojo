@@ -1,0 +1,118 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 文書内の和暦と西暦の併記が合っているか検査する / ファイルまたは標準入力のテキストから「令和3年（2021年）」「平成30(2018)年」のような和暦と西暦の併記を探し、対応が正しいか検査して、食い違いのある箇所を「行番号: 原文 → 正しくは令和3年=2021年」の形式で標準出力に出す。明治・大正・昭和・平成・令和に対応し、元号の範囲外の年（例：昭和70年）や元年表記も判定する。例：「平成31年（2020年）」を含む行を入力すると「3: 平成31年（2020年） → 平成31年=2019年（令和2年=2020年）」と出力する。食い違いがあれば終了コード1。フラグは不要。コマンド名は nengochk",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "nengochk",
+    "summary": "nengochk checks Japanese era and Western year pairs such as 令和3年（2021年） in text and reports mismatches.",
+    "kind": "inspect",
+    "usage": "nengochk [file ...]",
+    "flags": [],
+    "behavior": [
+      "B1: With no file arguments read stdin; otherwise read each file in order. Split input on \\n and strip one trailing \\r from each line. Line numbers start at 1 and restart for each file.",
+      "B2: Find pairs in each line, left to right, non-overlapping, with this Go regexp: (明治|大正|昭和|平成|令和)(元|[0-9０-９]+)年?[(（]([0-9０-９]+)年?[)）]年?  The whole matched text is ORIG. Full-width digits are converted to ASCII before parsing; 元 means 1.",
+      "B3: Era table (start year, max era year): 明治 1868 45; 大正 1912 15; 昭和 1926 64; 平成 1989 31; 令和 2019 no maximum. For era year y the correct Western year is W = start + y - 1.",
+      "B4: Reading of a Western year X: 1868-1911 明治, 1912-1925 大正, 1926-1988 昭和, 1989-2018 平成, 2019 or later 令和; era year = X - start + 1. Text form is ERA + year + 年= + X + 年, e.g. 平成7年=1995年 (always numeric digits, never 元). For X below 1868 there is no reading.",
+      "B5: A pair is in range when 1 \u003c= y \u003c= max (no upper limit for 令和). If in range and W equals the written Western year, it is consistent and nothing is printed.",
+      "B6: If in range but W differs, print the line N: ORIG → ERA y 年= W 年 (no spaces, N is the line number), followed, when a reading of the written Western year exists, by the reading in full-width parentheses （READING）. Example: 3: 平成31年（2020年） → 平成31年=2019年（令和2年=2020年）. y is printed as ASCII digits without leading zeros.",
+      "B7: If y is 0 or above the era maximum, print N: ORIG → ERA y 年は範囲外 (no spaces), followed by （READING） when a reading of the written Western year exists. Example: 1: 昭和70年（1995年） → 昭和70年は範囲外（平成7年=1995年）.",
+      "B8: Each reported pair is one output line on stdout, in order of appearance, terminated by \\n. When more than one file is given, every output line is prefixed with the file name and a colon, e.g. a.txt:3: ... . Nothing is printed for stdin or a single file.",
+      "B9: Empty input or no pairs found: no output, exit 0. Exit 1 if any pair was reported.",
+      "B10: If a file cannot be read, print nengochk: followed by the system error text to stderr, continue with the remaining files, and exit 1 at the end. Unknown flags give a usage message and exit 2."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "consistent pair",
+        "args": [],
+        "stdin": "令和3年（2021年）\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "example mismatch line 3",
+        "args": [],
+        "stdin": "a\nb\n平成31年（2020年）\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "3: 平成31年（2020年） → 平成31年=2019年（令和2年=2020年）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "out of range",
+        "args": [],
+        "stdin": "昭和70年（1995年）\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: 昭和70年（1995年） → 昭和70年は範囲外（平成7年=1995年）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "gannen and trailing nen",
+        "args": [],
+        "stdin": "令和元年(2019年)\n平成30(2018)年\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "two pairs one line",
+        "args": [],
+        "stdin": "昭和64年（1989年）と大正16年（1927年）\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: 大正16年（1927年） → 大正16年は範囲外（昭和2年=1927年）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file with full-width digits",
+        "args": [
+          "t.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "t.txt",
+            "content": "メモ\n令和３年（２０２０年）\n"
+          }
+        ],
+        "exit": 1,
+        "stdout": {
+          "exact": "2: 令和３年（２０２０年） → 令和3年=2021年（令和2年=2020年）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nofile.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "nengochk: "
+          ]
+        }
+      }
+    ]
+  }
+}

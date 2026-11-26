@@ -1,0 +1,153 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 文章中の金額表記を指定の書式に統一する / ファイルまたは標準入力の文章から「¥1500」「1500円」「壱万二千円」「3万5千円」などの金額を見つけ、-s で指定した書式（comma=12,000円、man=1億2,345万円、kanji=一万二千円）に書き換えて標準出力に出す。金額以外の部分はそのまま残す。例: -s comma で「家賃は八万五千円、敷金は¥170000」は「家賃は85,000円、敷金は170,000円」になる。コマンド名は yenfmt",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "yenfmt",
+    "summary": "yenfmt rewrites yen amounts found in text into comma, man or kanji notation and leaves all other text unchanged.",
+    "kind": "convert",
+    "usage": "yenfmt [-s comma|man|kanji] [file ...]",
+    "flags": [
+      {
+        "name": "s",
+        "type": "string",
+        "default": "comma",
+        "help": "output style: comma (12,000円), man (1億2,345万円) or kanji (一万二千円)"
+      }
+    ],
+    "behavior": [
+      "B1: Input is the concatenation of the files named as arguments, in order, or all of stdin if there are no file arguments. All input is read before anything is written. Input files are never modified. Empty input gives empty output and exit 0.",
+      "B2: If -s is not exactly comma, man or kanji, print 'yenfmt: invalid -s value \"V\" (use comma, man or kanji)' plus newline to stderr (V is the given value), nothing to stdout, exit 2. An unknown flag is also a usage error (exit 2).",
+      "B3: If a file cannot be read, print 'yenfmt: ' followed by the error text and a newline to stderr, write nothing to stdout, exit 1.",
+      "B4: Matches are found left to right and do not overlap. Form P: a prefix ¥ (U+00A5) or ￥ (U+FFE5), then an ASCII digit, then any number of ASCII digits and commas, then an optional 円 which is consumed too. Form U: a run that starts with one of 0-9 零〇一二三四五六七八九壱弐参, continues with any of 0-9 , 零〇一二三四五六七八九壱弐参十拾百千万億, and is immediately followed by 円 (the 円 is part of the match). A run starting with a unit character (十拾百千万億) or a comma does not match, so 千円 and 数万円 are left unchanged.",
+      "B5: Value of a match (commas ignored): scan left to right with total=0, section=0, num=unset. A run of consecutive ASCII digits sets num to its decimal value. A single numeral character sets num to its digit (零〇=0, 一壱=1, 二弐=2, 三参=3, 四=4, 五=5, 六=6, 七=7, 八=8, 九=9). If num is already set when a digit run or numeral begins, the match is invalid. 十拾=10, 百=100, 千=1000: section += (num if set else 1) * unit, then num=unset. 万=10^4, 億=10^8: g = section + (num if set else 0); if g is 0 then g=1; total += g * unit; section=0; num=unset. At the end value = total + section + (num if set else 0). Form P value is its digits with commas ignored.",
+      "B6: A match is left unchanged if it is invalid, if an ASCII digit run has more than 15 digits, or if value is greater than 999999999999999.",
+      "B7: Otherwise the match is replaced by the value in the -s style, always ending in 円. comma: decimal digits with a comma every three digits, e.g. 85,000円; 0 is 0円.",
+      "B8: Style man: oku=value/100000000, man=(value%100000000)/10000, rest=value%10000. Output, in order, oku and 億 if oku\u003e0, man and 万 if man\u003e0, rest if rest\u003e0, each number in comma style, then 円. Value 0 gives 0円. Examples: 1億2,345万円, 3万5,000円, 8,500円, 1億円.",
+      "B9: Style kanji uses numerals 一二三四五六七八九. f(n) for 0\u003cn\u003c10000: for 千, 百, 十 in turn, with digit d at that place, output nothing if d=0, the unit alone if d=1, else the numeral then the unit; then the ones digit as a numeral if not 0. k(n) for n\u003c100000000: (f(n/10000) followed by 万 if n/10000\u003e0) followed by f(n%10000) if n%10000\u003e0. Output: (k(value/100000000) followed by 億 if value/100000000\u003e0), then k(value%100000000), then 円. Value 0 gives 零円. Examples: 一万二千円, 千円, 十七万円, 一億円, 十万円, 一円.",
+      "B10: All text outside matches is copied byte for byte, including invalid UTF-8 and newlines; the output has no added newline."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "comma-mixed",
+        "args": [
+          "-s",
+          "comma"
+        ],
+        "stdin": "家賃は八万五千円、敷金は¥170000\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "家賃は85,000円、敷金は170,000円\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "man-style",
+        "args": [
+          "-s",
+          "man"
+        ],
+        "stdin": "1億2345万円と3万5千円と8500円\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "1億2,345万円と3万5,000円と8,500円\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "kanji-style",
+        "args": [
+          "-s",
+          "kanji"
+        ],
+        "stdin": "12000円 1000円 170000円 100000000円\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "一万二千円 千円 十七万円 一億円\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file-formal",
+        "args": [
+          "-s",
+          "comma",
+          "a.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.txt",
+            "content": "弐千円\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "2,000円\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "zero-kanji",
+        "args": [
+          "-s",
+          "kanji"
+        ],
+        "stdin": "0円と価格未定\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "零円と価格未定\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "default-fullwidth",
+        "args": [],
+        "stdin": "￥1,500 と 3万円\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "1,500円 と 30,000円\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "bad-style",
+        "args": [
+          "-s",
+          "foo"
+        ],
+        "stdin": "1円\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "yenfmt:"
+          ]
+        }
+      },
+      {
+        "name": "missing-file",
+        "args": [
+          "nofile.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "yenfmt:"
+          ]
+        }
+      }
+    ]
+  }
+}

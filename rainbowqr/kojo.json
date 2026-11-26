@@ -1,0 +1,144 @@
+{
+  "factory": "go-kojo",
+  "request": "文字を入力したらレインボーなQRコードが派手なアニメーションとともに表示される",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "rainbowqr",
+    "summary": "rainbowqr shows the given text as a QR code in the terminal with a rainbow color animation.",
+    "kind": "display",
+    "usage": "rainbowqr [-d seconds] [text]",
+    "flags": [
+      {
+        "name": "d",
+        "type": "float",
+        "default": "3",
+        "help": "animation length in seconds (0 disables the animation)"
+      }
+    ],
+    "behavior": [
+      "B1: Text is the single positional argument if one is given; otherwise all of stdin is read. Trailing \\r and \\n characters are removed from the text. More than one positional argument prints 'rainbowqr: too many arguments' to stderr and exits 2.",
+      "B2: If the text is empty after trimming (empty argument, empty stdin, or only newlines), print 'rainbowqr: no text given' to stderr, then the usage line, and exit 2.",
+      "B3: If -d is negative or NaN, print 'rainbowqr: invalid duration' to stderr and exit 2. Invalid flag syntax also exits 2 (standard flag package).",
+      "B4: The QR code is made with qrcode.New(text, qrcode.Medium) from github.com/skip2/go-qrcode. If this fails (for example text too long), print 'rainbowqr: ' followed by the error message to stderr and exit 1.",
+      "B5: If stdout is not a terminal (checked with go-isatty) or -d is 0, no animation and no escape codes are used: print qr.ToSmallString(false) to stdout unchanged (lines of space, ▀, ▄, █ characters), and exit 0.",
+      "B6: If stdout is a terminal and -d \u003e 0: hide the cursor, then draw frames at about 30 ms intervals for -d seconds. Each frame draws the QR bitmap (qr.Bitmap(), including its quiet-zone border) two rows per text line using the half-block characters, with 24-bit foreground colors (ESC[38;2;R;G;Bm) whose hue depends on (column + row) and the frame number, so the rainbow scrolls. In the first half of the duration a sweep reveals the QR from left to right (columns not yet reached are blank); the sweep front is drawn in white. Frames after the first move the cursor up to overwrite the previous frame.",
+      "B7: The last frame is fully revealed with the rainbow colors. After it, reset colors (ESC[0m), show the cursor again, and exit 0, leaving the final QR on screen. The cursor is also restored on error paths after hiding it.",
+      "B8: Nothing is written to stdout other than the QR output; the program does not read keys and does not use the alternate screen."
+    ],
+    "deps": [
+      "github.com/skip2/go-qrcode",
+      "github.com/mattn/go-isatty"
+    ],
+    "network": false,
+    "cases": [
+      {
+        "name": "plain qr from argument",
+        "args": [
+          "hello"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "regex": "^[ ▀▄█]+(\\n[ ▀▄█]+)*\\n?$"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "plain qr from stdin",
+        "args": [],
+        "stdin": "https://example.com\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "regex": "^[ ▀▄█]+(\\n[ ▀▄█]+)*\\n?$"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "duration zero",
+        "args": [
+          "-d",
+          "0",
+          "abc"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "contains": [
+            "█"
+          ]
+        },
+        "stderr": {}
+      },
+      {
+        "name": "empty stdin",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "rainbowqr: no text given"
+          ]
+        }
+      },
+      {
+        "name": "only newlines",
+        "args": [],
+        "stdin": "\n\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "rainbowqr: no text given"
+          ]
+        }
+      },
+      {
+        "name": "negative duration",
+        "args": [
+          "-d",
+          "-1",
+          "hello"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "rainbowqr: invalid duration"
+          ]
+        }
+      },
+      {
+        "name": "too many arguments",
+        "args": [
+          "a",
+          "b"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "rainbowqr: too many arguments"
+          ]
+        }
+      }
+    ]
+  }
+}

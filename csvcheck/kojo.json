@@ -1,0 +1,148 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: CSVの列数ずれ・重複行・前後空白を検査して報告する / ファイルまたは標準入力からCSVを読み、問題を行番号つきで1行ずつ報告する。検査項目は、ヘッダと列数が違う行、完全に同じ内容の重複行（行内容のUUID v5で判定し最初の行番号を示す）、セルの前後の空白、空のセル、ヘッダ名の重複。例: 3行目が列数不足、5行目が2行目と重複なら `3: 列数が4でなく3` `5: 2行目と重複` のように出し、問題があれば終了コード1、なければ何も出さず0。フラグは -k（重複判定に使う列番号をカンマ区切りで指定）のみ。コマンド名は csvcheck",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "csvcheck",
+    "summary": "csvcheck reads CSV from a file or stdin and reports structural problems line by line, exiting 1 if any are found.",
+    "kind": "inspect",
+    "usage": "csvcheck [-k cols] [file]",
+    "flags": [
+      {
+        "name": "k",
+        "type": "string",
+        "default": "",
+        "help": "comma-separated 1-based column numbers used for duplicate row detection (default: whole row)"
+      }
+    ],
+    "behavior": [
+      "B1: Input is the single file argument, or stdin if no argument is given. More than one argument is a usage error: print \"usage: csvcheck [-k cols] [file]\" to stderr, exit 2.",
+      "B2: Parse with encoding/csv, FieldsPerRecord = -1, default quote rules. The line number of a record is the physical line where it starts (csv.Reader.FieldPos(0) line); the first record is the header. Blank lines are skipped by the parser.",
+      "B3: Empty input (no records): print nothing, exit 0.",
+      "B4: If -k is given, split it on commas; each item must be an integer from 1 to the header column count, otherwise print \"csvcheck: invalid -k value: \u003cthe whole -k string\u003e\" to stderr and exit 2 before any problem is printed (checked right after the header is read). Repeated numbers are allowed.",
+      "B5: Problems are printed to stdout as found, one per line, as \"\u003cline\u003e: \u003cmessage\u003e\", in record order. Within one record the order is: column count, duplicate header names (header only), cells left to right, duplicate row (data rows only).",
+      "B6: Column count: if a data record has C fields and the header has H, print \"\u003cline\u003e: 列数がHでなくC\" with decimal numbers, e.g. \"3: 列数が4でなく3\".",
+      "B7: Duplicate header names: for each header cell whose exact text equals an earlier header cell, print \"\u003cline\u003e: ヘッダ名「NAME」が重複\" where NAME is the cell text.",
+      "B8: Cells (header and data rows, columns numbered from 1 over the fields actually present): if a cell differs from strings.TrimSpace(cell), print \"\u003cline\u003e: 列Nのセルの前後に空白\"; otherwise if the cell is the empty string, print \"\u003cline\u003e: 列Nのセルが空\". Only one message per cell.",
+      "B9: Duplicate rows (data rows only): key = the selected -k fields (a missing field counts as empty string) or all fields, joined with the byte 0x1F; id = uuid.NewSHA1(uuid.NameSpaceOID, []byte(key)). If id was seen before, print \"\u003cline\u003e: M行目と重複\" where M is the line of the first record with that id. Short or long rows take part like any other row.",
+      "B10: Exit 1 if anything was printed to stdout. Open/read failure or CSV parse error: print \"csvcheck: \u003cerror text\u003e\" to stderr and exit 1 (problems already printed stay printed). Otherwise exit 0."
+    ],
+    "deps": [
+      "github.com/google/uuid"
+    ],
+    "network": false,
+    "cases": [
+      {
+        "name": "readme example",
+        "args": [
+          "data.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "data.csv",
+            "content": "a,b,c,d\n1,2,3,4\n1,2,3\nx,y,z,w\n1,2,3,4\n"
+          }
+        ],
+        "exit": 1,
+        "stdout": {
+          "exact": "3: 列数が4でなく3\n5: 2行目と重複\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "clean stdin",
+        "args": [],
+        "stdin": "a,b\n1,2\n3,4\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "whitespace and empty",
+        "args": [],
+        "stdin": "a,b\n x,\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "2: 列1のセルの前後に空白\n2: 列2のセルが空\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "duplicate header",
+        "args": [],
+        "stdin": "a,b,a\n1,2,3\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: ヘッダ名「a」が重複\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "key column duplicate",
+        "args": [
+          "-k",
+          "1"
+        ],
+        "stdin": "id,v\n1,a\n1,b\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "3: 2行目と重複\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "k out of range",
+        "args": [
+          "-k",
+          "3"
+        ],
+        "stdin": "a,b\n1,2\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "csvcheck: invalid -k value: 3"
+          ]
+        }
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nofile.csv"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "csvcheck: "
+          ]
+        }
+      },
+      {
+        "name": "empty input",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      }
+    ]
+  }
+}

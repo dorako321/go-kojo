@@ -1,0 +1,172 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 全角幅を考慮して折り返し、左右中央・均等に揃える / ファイルまたは標準入力のテキストを、表示幅（全角=2、半角=1）で指定幅に折り返し、各行を左寄せ・右寄せ・中央・均等割り付けのいずれかに揃えて出力する。日本語は文字単位、英語は単語単位で折り、行頭の句読点や閉じ括弧は避ける。例: `-w 20 -a center` で長い日本語の段落を渡すと、各行が幅20の中央に空白で揃った複数行になる。フラグは -w（幅、既定40）、-a（left/right/center/justify、既定left）。コマンド名は wrapal",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "wrapal",
+    "summary": "wrapal wraps text from a file or stdin to a display width and aligns each line left, right, center or justified.",
+    "kind": "convert",
+    "usage": "wrapal [-w width] [-a left|right|center|justify] [file]",
+    "flags": [
+      {
+        "name": "w",
+        "type": "int",
+        "default": "40",
+        "help": "target display width (full-width chars count 2)"
+      },
+      {
+        "name": "a",
+        "type": "string",
+        "default": "left",
+        "help": "alignment: left, right, center or justify"
+      }
+    ],
+    "behavior": [
+      "B1: Input is the file named by the first non-flag argument, or stdin if none. Display width of a rune is given by github.com/mattn/go-runewidth (RuneWidth). If the file cannot be read, print \"wrapal: \u003cerror\u003e\" to stderr and exit 1. More than one file argument: print \"wrapal: too many arguments\" to stderr, exit 2.",
+      "B2: If -w is less than 1, print \"wrapal: invalid width\" to stderr and exit 2. If -a is not exactly left, right, center or justify, print \"wrapal: invalid alignment: \u003cvalue\u003e\" to stderr and exit 2.",
+      "B3: Strip a trailing CR from each input line. A paragraph is a maximal run of lines that are not blank (blank = empty or only spaces/tabs). Empty input or input with no paragraphs produces no output and exit 0.",
+      "B4: Within a paragraph, join its lines into one string: between two lines insert a single space, unless the last rune of the earlier line or the first rune of the next line has display width 2, in which case insert nothing. Then treat runs of spaces/tabs as one space and trim spaces at both ends.",
+      "B5: Split the paragraph into units. Each rune of display width 2 is its own unit. Each maximal run of non-space runes of width other than 2 is a word; a word wider than w is cut into consecutive chunks, each as wide as possible without exceeding w, and each chunk is a unit. A unit has a flag 'space before' that is true only if a source space directly precedes it (false for chunks after the first of a word, and for the first unit of the paragraph).",
+      "B6: Fill lines greedily. A unit is appended to the current line if the line is empty or line width + (1 if space before) + unit width \u003c= w; otherwise it starts a new line. A unit wider than w (possible only with a width-2 rune and w=1) stands alone on its line. A space before the first unit of a line is dropped. Line width counts the single spaces between units.",
+      "B7: Kinsoku: the closing set is the runes 、。，．）」』】〕！？. When a new line would start with a unit from the closing set, and the previous line has more than one unit, move the previous line's last unit to the start of the new line; repeat while the new line's first unit is in the closing set and the previous line still has more than one unit. The moved unit keeps its own space-before flag, and the flag of the unit that followed it is unchanged. Afterwards continue filling from B6 on the new line, which may start with the moved units.",
+      "B8: Alignment per line, where pad = w - line width (if pad \u003c= 0 no padding at all). left: no padding. right: pad spaces before the line. center: pad/2 (integer division) spaces before and pad - pad/2 spaces after (trailing spaces are printed). justify: applies to every line of the paragraph except the last, which is left-aligned; gaps are the positions between adjacent units that have a space before the second unit; if there are no such gaps, gaps are all positions between adjacent units; if the line has no gap, no padding. Every gap receives pad/n extra spaces (n = gap count) and the first pad%n gaps from the left receive one more.",
+      "B9: Output each line followed by a newline. Paragraphs are separated by exactly one empty line (no empty line before the first or after the last paragraph), regardless of how many blank lines were in the input.",
+      "B10: Output is plain text, no color, exit 0 on success."
+    ],
+    "deps": [
+      "github.com/mattn/go-runewidth"
+    ],
+    "network": false,
+    "cases": [
+      {
+        "name": "left english",
+        "args": [
+          "-w",
+          "10"
+        ],
+        "stdin": "the quick brown fox jumps\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "the quick\nbrown fox\njumps\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "center odd pad",
+        "args": [
+          "-w",
+          "10",
+          "-a",
+          "center"
+        ],
+        "stdin": "abc\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "   abc    \n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "right with paragraphs",
+        "args": [
+          "-w",
+          "5",
+          "-a",
+          "right"
+        ],
+        "stdin": "ab\n\n\n\ncd\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "   ab\n\n   cd\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "justify english",
+        "args": [
+          "-w",
+          "10",
+          "-a",
+          "justify"
+        ],
+        "stdin": "the quick brown fox jumps\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "the  quick\nbrown  fox\njumps\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "kinsoku japanese",
+        "args": [
+          "-w",
+          "6"
+        ],
+        "stdin": "あいう。えお\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "あい\nう。え\nお\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "justify japanese from file",
+        "args": [
+          "-w",
+          "7",
+          "-a",
+          "justify",
+          "in.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "in.txt",
+            "content": "あいうえおか\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "あ いう\nえおか\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "bad alignment",
+        "args": [
+          "-a",
+          "bogus"
+        ],
+        "stdin": "abc\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "wrapal: invalid alignment: bogus"
+          ]
+        }
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nofile.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "wrapal: "
+          ]
+        }
+      }
+    ]
+  }
+}

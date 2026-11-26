@@ -1,0 +1,143 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 文中の日付と曜日の食い違いを見つけて報告する / ファイルまたは標準入力のテキストから、`令和3年4月5日（月）` や `2021年4月5日(月)` のように曜日付きの日付（元号は明治・大正・昭和・平成・令和、年は元年も可）を探し、実際の曜日と合わない箇所を行番号つきで報告する。例: `令和3年4月5日（火）` を含む行に対し、`1: 令和3年4月5日 は月曜日（火と書かれている）` と出す。不一致があれば終了コード1。フラグは -a（一致したものも全て表示）のみ。コマンド名は youbichk",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "youbichk",
+    "summary": "youbichk finds dates with a written weekday in Japanese text and reports those whose weekday does not match the real calendar.",
+    "kind": "inspect",
+    "usage": "youbichk [-a] [file ...]",
+    "flags": [
+      {
+        "name": "a",
+        "type": "bool",
+        "default": "false",
+        "help": "also print dates whose weekday matches"
+      }
+    ],
+    "behavior": [
+      "B1: Input is each file named in the arguments, in order; with no file arguments it reads stdin. Lines are split on newline (a trailing carriage return is ignored); line numbers are 1-based and restart for each file.",
+      "B2: A candidate is DATE OPEN WD CLOSE where DATE is YEAR年M月D日; M and D are 1 or 2 ASCII digits; WD is exactly one of 日月火水木金土; OPEN is ( or full-width （; CLOSE is ) or full-width ）, in any combination; no spaces inside the candidate. YEAR is an era name (明治, 大正, 昭和, 平成, 令和) followed by 元 or by one or more ASCII digits, or exactly four ASCII digits (Gregorian). All candidates on a line are checked, left to right, non-overlapping. Text that is not a candidate is ignored.",
+      "B3: Era year N maps to Gregorian year start+N-1 with starts 明治 1868, 大正 1912, 昭和 1926, 平成 1989, 令和 2019; 元 means N=1. Valid era years: 明治 1-45, 大正 1-15, 昭和 1-64, 平成 1-31, 令和 any N\u003e=1. Era boundaries inside a year are not checked. Gregorian years are used as written (proleptic Gregorian calendar).",
+      "B4: A date is invalid if the era year is outside its valid range (including 0), or if year/month/day is not a real calendar date (e.g. 2月30日, 0月, 13月, 0日).",
+      "B5: Output line format is PREFIX + LINE + \": \" + DATE + \" \" + MSG, where LINE is the 1-based line number and DATE is the date text as written (YEAR年M月D日, without the weekday part). PREFIX is empty when there are zero or one file arguments, otherwise the file name followed by \":\".",
+      "B6: For a valid date whose real weekday differs from WD, MSG is \"は\" + REAL + \"曜日（\" + WD + \"と書かれている）\" where REAL is one of 日月火水木金土. Example: 1: 令和3年4月5日 は月曜日（火と書かれている）",
+      "B7: For an invalid date, MSG is \"は存在しない日付です\". Example: 1: 令和3年2月30日 は存在しない日付です",
+      "B8: With -a, a valid date whose weekday matches is also printed with MSG \"は\" + REAL + \"曜日（一致）\". Without -a matches print nothing. Output lines appear in input order, each ending in newline, on stdout.",
+      "B9: Exit code 1 if at least one mismatch or invalid date was printed, or any file could not be read; otherwise 0 (empty input gives no output and exit 0). Matches printed by -a do not affect the exit code.",
+      "B10: If a file cannot be opened or read, print \"youbichk: \" followed by the system error message to stderr, continue with the remaining files, and exit 1 at the end. Unknown flags give a usage message on stderr and exit 2."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "mismatch",
+        "args": [],
+        "stdin": "令和3年4月5日（火）\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: 令和3年4月5日 は月曜日（火と書かれている）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "match silent",
+        "args": [],
+        "stdin": "2021年4月5日(月)\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "match with -a",
+        "args": [
+          "-a"
+        ],
+        "stdin": "2021年4月5日(月)\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "1: 2021年4月5日 は月曜日（一致）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "invalid date",
+        "args": [],
+        "stdin": "令和3年2月30日（月）\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1: 令和3年2月30日 は存在しない日付です\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "multi on line, gannen",
+        "args": [],
+        "stdin": "メモ\n平成元年1月8日(日) と 昭和64年1月7日（日）\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "2: 昭和64年1月7日 は土曜日（日と書かれている）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "two files prefix",
+        "args": [
+          "a.txt",
+          "b.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.txt",
+            "content": "2021年4月5日(火)\n"
+          },
+          {
+            "name": "b.txt",
+            "content": "2021年4月5日(月)\n"
+          }
+        ],
+        "exit": 1,
+        "stdout": {
+          "exact": "a.txt:1: 2021年4月5日 は月曜日（火と書かれている）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nope.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "youbichk: "
+          ]
+        }
+      },
+      {
+        "name": "empty input",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      }
+    ]
+  }
+}

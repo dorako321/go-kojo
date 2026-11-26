@@ -1,0 +1,140 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 全角英数と半角カナの表記ゆれを統一して出力する / ファイルまたは標準入力の日本語テキストを読み、全角英数字・全角記号を半角に、半角カタカナ（濁点・半濁点の結合を含む）を全角カタカナに揃えて標準出力に出す。フラグ -r を付けると変換せず、変換が必要な行を「行番号: 元の行」で一覧にする。例: 「ＡＢＣ１２３ ｶﾞｷﾞｸﾞ」は「ABC123 ガギグ」になる。コマンド名は zenhan",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "zenhan",
+    "summary": "zenhan normalizes Japanese text by converting full-width ASCII to half-width and half-width katakana to full-width katakana, or lists the lines needing conversion with -r.",
+    "kind": "convert",
+    "usage": "zenhan [-r] [file ...]",
+    "flags": [
+      {
+        "name": "r",
+        "type": "bool",
+        "default": "false",
+        "help": "report lines that would change as 'lineNumber: original line' instead of converting"
+      }
+    ],
+    "behavior": [
+      "B1: Input is the files named in the arguments, read in order; with no file arguments it is stdin. Input is split on LF only; a CR is an ordinary character kept as is. Whether the input ends with a newline is preserved exactly in the output. Empty input produces no output and exit 0.",
+      "B2: Conversion works per rune. U+FF01 to U+FF5E become the ASCII character at code point minus 0xFEE0. U+3000 becomes ASCII space U+0020. Other characters (including U+FFE5) are not converted by this rule.",
+      "B3: Half-width katakana U+FF61 to U+FF9F become the corresponding full-width characters by the standard table (｡ to 。, ｢ to 「, ｣ to 」, ､ to 、, ･ to ・, ｦ to ヲ, small ｧｨｩｪｫｬｭｮｯ to ァィゥェォャュョッ, ｰ to ー, ｱ to ア through ﾝ to ン in gojuon order, ﾜ to ワ).",
+      "B4: If one of ｶｷｸｹｺ ｻｼｽｾｿ ﾀﾁﾂﾃﾄ ﾊﾋﾌﾍﾎ ｳ is immediately followed by ﾞ (U+FF9E), the pair becomes one precomposed voiced character (ｶ to ガ, ﾊ to バ, ｳ to ヴ, etc.). If one of ﾊﾋﾌﾍﾎ is immediately followed by ﾟ (U+FF9F), the pair becomes パピプペポ.",
+      "B5: A ﾞ or ﾟ not combined by B4 (after any other character, after an already combined pair, or at line start) becomes full-width ゛ (U+309B) or ゜ (U+309C) respectively.",
+      "B6: All other characters (kanji, hiragana, full-width katakana, 、。「」 etc.) pass through unchanged. Invalid UTF-8 bytes are copied unchanged.",
+      "B7: Without -r, the converted text is written to stdout.",
+      "B8: With -r, nothing is converted. For each line whose converted form differs from the original, print 'N: line' plus newline, where N is the 1-based line number counted separately per input and line is the original line without its LF. Lines that would not change are not printed. If the input ends with LF, no extra empty final line is counted. Exit 0 even when lines are listed.",
+      "B9: If a file cannot be read, print 'zenhan: cannot read FILE: REASON' to stderr, continue with the remaining files, and exit 1 at the end. Input files are never modified.",
+      "B10: An unknown flag prints 'zenhan: ' followed by the flag error and the usage line to stderr and exits 2."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "example",
+        "args": [],
+        "stdin": "ＡＢＣ１２３ ｶﾞｷﾞｸﾞ\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "ABC123 ガギグ\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "report",
+        "args": [
+          "-r"
+        ],
+        "stdin": "hello\nＡＢＣ\n日本語\nｱｲｳ\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "2: ＡＢＣ\n4: ｱｲｳ\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file symbols",
+        "args": [
+          "in.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "in.txt",
+            "content": "（ｔｅｓｔ）　ﾊﾟﾝ｡\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "(test) パン。\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "stray marks",
+        "args": [],
+        "stdin": "ｱﾞ ﾞ\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "ア゛ ゛\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "empty input",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "no trailing newline",
+        "args": [],
+        "stdin": "ｶﾞ",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "ガ"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nope.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "zenhan: "
+          ]
+        }
+      },
+      {
+        "name": "bad flag",
+        "args": [
+          "-x"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "zenhan: "
+          ]
+        }
+      }
+    ]
+  }
+}

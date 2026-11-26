@@ -1,0 +1,142 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: CSVやテキスト中の絵文字など4バイト文字を位置付きで報告 / ファイルまたは標準入力を行ごとに調べ、絵文字を含むUTF-8で4バイトになる文字、異体字セレクタ、ゼロ幅接合子を見つけて「行:桁 U+1F600」の形で報告する。CSVの場合に備え、-c を付けると列番号も併記する。見つかれば終了コード1、なければ0。古いMySQLのutf8やShift_JIS変換で壊れる文字を事前に探す用途。例: 「3行目: 「こんにちは😀」は 3:6 U+1F600 と出る。コマンド名は u4scan",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "u4scan",
+    "summary": "u4scan reports characters that break in old MySQL utf8 or Shift_JIS conversion (4-byte UTF-8 characters, variation selectors, zero width joiner) with line and column.",
+    "kind": "inspect",
+    "usage": "u4scan [-c] [file ...]",
+    "flags": [
+      {
+        "name": "c",
+        "type": "bool",
+        "default": "false",
+        "help": "CSV mode: also print the 1-based CSV column number of each finding"
+      }
+    ],
+    "behavior": [
+      "B1: Input is the files named as arguments, read in order; with no file arguments it is stdin. Input is split into lines on \\n; one trailing \\r on a line is removed. A final line without \\n is still a line. Line numbers start at 1 and restart for each file. Empty input produces no output.",
+      "B2: Each line is decoded as UTF-8 and scanned rune by rune. Column is the 1-based rune index in the line (not bytes). An invalid UTF-8 byte counts as one rune and is never reported.",
+      "B3: A rune is reported if its code point is \u003e= U+10000, or in U+FE00..U+FE0F, or in U+E0100..U+E01EF, or equals U+200D.",
+      "B4: Each finding is one stdout line \"LINE:COL U+XXXX\", XXXX being uppercase hex with at least 4 digits. Findings are in order of line, then column.",
+      "B5: With -c the finding line is \"LINE:COL col N U+XXXX\". N is 1 plus the number of commas before that rune in the line that are outside double quotes; every double quote rune toggles the in-quotes state (the quote itself is not a comma). Each line is evaluated independently, starting not-in-quotes.",
+      "B6: When more than one file is named, every finding line is prefixed with \"FILE:\" (the file name as given), e.g. \"b.txt:1:2 U+1F600\". With one file or stdin there is no prefix.",
+      "B7: If a file cannot be opened or read, print \"u4scan: \" followed by a message naming the file to stderr, continue with the remaining files, and exit 1 at the end.",
+      "B8: Exit code is 0 if nothing was found and no error occurred, 1 if any finding or any read error occurred, 2 on usage error (unknown flag; the flag package message goes to stderr).",
+      "B9: Nothing is written except to stdout and stderr; files are only read."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "emoji_basic",
+        "args": [],
+        "stdin": "こんにちは😀\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1:6 U+1F600\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "clean",
+        "args": [],
+        "stdin": "hello\nこんにちは\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "empty",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "csv_column",
+        "args": [
+          "-c"
+        ],
+        "stdin": "a,\"b,😀\",c\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1:6 col 2 U+1F600\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "crlf_line2",
+        "args": [],
+        "stdin": "a\r\n😀a\r\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "2:1 U+1F600\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "two_files_prefix",
+        "args": [
+          "a.txt",
+          "b.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.txt",
+            "content": "ok\n"
+          },
+          {
+            "name": "b.txt",
+            "content": "x😀\n"
+          }
+        ],
+        "exit": 1,
+        "stdout": {
+          "exact": "b.txt:1:2 U+1F600\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing_file",
+        "args": [
+          "nope.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "u4scan: "
+          ]
+        }
+      },
+      {
+        "name": "bad_flag",
+        "args": [
+          "-z"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {}
+      }
+    ]
+  }
+}

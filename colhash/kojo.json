@@ -1,0 +1,190 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 2つのCSVの列ごとのハッシュを比べ変化した列を示す / CSVファイルを1つまたは2つ受け取り（1つなら標準入力と比較せず単独表示）、列ごとにその列の全セルを連結したSHA-256の先頭8桁を計算して、Markdownの表で出力する。列は列名、ファイル1のハッシュ、ファイル2のハッシュ、同じか違うか（same/diff/only-a/only-b）。例: old.csv と new.csv で price列だけ値が変わっていれば、price行に diff、他の列に same と出す。フラグは -n（ハッシュの桁数、既定8）のみ。コマンド名は colhash",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "colhash",
+    "summary": "colhash prints a Markdown table of per-column SHA-256 prefixes for one CSV file, or compares them between two CSV files.",
+    "kind": "inspect",
+    "usage": "colhash [-n digits] file1.csv [file2.csv]",
+    "flags": [
+      {
+        "name": "n",
+        "type": "int",
+        "default": "8",
+        "help": "number of hex characters of each hash (1 to 64)"
+      }
+    ],
+    "behavior": [
+      "B1: Arguments are one or two CSV file paths. Stdin is never read. With 0 or more than 2 file arguments, print \"colhash: expected one or two CSV files\" and the usage line to stderr, exit 2.",
+      "B2: If -n is less than 1 or greater than 64, print \"colhash: -n must be between 1 and 64\" to stderr, exit 2. Check this before reading any file.",
+      "B3: Each file is parsed with encoding/csv (FieldsPerRecord = -1, so rows may differ in length). The first record is the header giving column names; the remaining records are data rows. A file with no records at all has zero columns.",
+      "B4: For the column at header index i, the cell is the field at index i of each data row, in row order, or empty if the row is shorter. Fields beyond the header length are ignored. All cells are concatenated with no separator as UTF-8 bytes; the hash is the lowercase hex SHA-256 of that, cut to its first N characters. A column with no data rows hashes the empty string.",
+      "B5: If a header name repeats within one file, the second occurrence is named NAME#2, the third NAME#3, and so on; these names are used for matching and printing.",
+      "B6: One file: print to stdout the line \"| Column | Hash |\", the line \"| --- | --- |\", then one line \"| NAME | HASH |\" per column in header order. Every line ends with a newline. Zero columns prints just the two header lines.",
+      "B7: Two files: print \"| Column | File1 hash | File2 hash | Status |\", then \"| --- | --- | --- | --- |\", then one line \"| NAME | HASH1 | HASH2 | STATUS |\" per column: first all columns of file 1 in its order, then columns present only in file 2 in its order. Columns are matched by name (after B5).",
+      "B8: STATUS is same if both hashes are equal, diff if the column is in both files and the hashes differ, only-a if only in file 1, only-b if only in file 2. The hash cell of the file lacking the column is \"-\".",
+      "B9: In printed names, a pipe character is written as \\| (backslash then pipe).",
+      "B10: If a file cannot be opened or is malformed CSV, print \"colhash: FILE: MESSAGE\" to stderr, print nothing to stdout, exit 1.",
+      "B11: Exit 0 on success, even when the files differ."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "single file",
+        "args": [
+          "a.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.csv",
+            "content": "id,name\n1,a\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "| Column | Hash |\n| --- | --- |\n| id | 6b86b273 |\n| name | ca978112 |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "two files one column differs",
+        "args": [
+          "old.csv",
+          "new.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "old.csv",
+            "content": "id,price\n1,2\n"
+          },
+          {
+            "name": "new.csv",
+            "content": "id,price\n1,3\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "| Column | File1 hash | File2 hash | Status |\n| --- | --- | --- | --- |\n| id | 6b86b273 | 6b86b273 | same |\n| price | d4735e3a | 4e074085 | diff |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "only-a and only-b",
+        "args": [
+          "a.csv",
+          "b.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.csv",
+            "content": "id,x\n1,a\n"
+          },
+          {
+            "name": "b.csv",
+            "content": "id,y\n1,b\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "| Column | File1 hash | File2 hash | Status |\n| --- | --- | --- | --- |\n| id | 6b86b273 | 6b86b273 | same |\n| x | ca978112 | - | only-a |\n| y | - | 3e23e816 | only-b |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "multi-row concat and empty cells",
+        "args": [
+          "a.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.csv",
+            "content": "n,e\na,\nb,\nc,\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "| Column | Hash |\n| --- | --- |\n| n | ba7816bf |\n| e | e3b0c442 |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "digits flag",
+        "args": [
+          "-n",
+          "4",
+          "a.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.csv",
+            "content": "id\n1\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "| Column | Hash |\n| --- | --- |\n| id | 6b86 |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "bad n is usage error",
+        "args": [
+          "-n",
+          "0",
+          "a.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.csv",
+            "content": "id\n1\n"
+          }
+        ],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "colhash: -n must be between 1 and 64"
+          ]
+        }
+      },
+      {
+        "name": "no arguments",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "colhash:"
+          ]
+        }
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nope.csv"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "colhash: nope.csv"
+          ]
+        }
+      }
+    ]
+  }
+}

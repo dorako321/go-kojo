@@ -1,0 +1,146 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: JSON配列をMarkdownの表に変換する / ファイルまたは標準入力から、オブジェクトのJSON配列またはNDJSONを読み、全キーの和集合を見出しにしたMarkdown表を標準出力に出す。キーがない行は空欄、入れ子の値は一行のJSON文字列にし、セル内の縦線は \\| にエスケープする。例: [{\"name\":\"a\",\"n\":1},{\"name\":\"b\",\"tag\":[1,2]}] は name・n・tag の3列の表になり、tag列には [1,2] が入る。コマンド名は jsonmd",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "jsonmd",
+    "summary": "jsonmd reads a JSON array of objects or NDJSON from a file or stdin and prints a Markdown table whose columns are the union of all keys.",
+    "kind": "convert",
+    "usage": "jsonmd [file]",
+    "flags": [],
+    "behavior": [
+      "B1: Input is the named file, or stdin when no argument is given. More than one argument or an unknown flag is a usage error: print 'usage: jsonmd [file]' to stderr, exit 2.",
+      "B2: If the first non-whitespace byte of the input is '[', the whole input must be one JSON array of objects, followed only by whitespace. Otherwise the input is NDJSON: a sequence of JSON objects separated by whitespace/newlines (blank lines ignored). Numbers keep their original text.",
+      "B3: Columns are the union of all keys in order of first appearance (objects in input order, keys in each object's order). If a key is duplicated within one object, the last value wins.",
+      "B4: Cell text: string as-is; number as its original text; true/false as 'true'/'false'; null and missing keys as empty; array/object as compact single-line JSON (no whitespace outside strings, original key order and number text kept).",
+      "B5: In every cell and header, each CR LF, LF or CR is replaced by one space, then each '|' is replaced by backslash + '|'. No other escaping.",
+      "B6: Output is the header row, the separator row, then one row per object. A row is '| ' + cells joined by ' | ' + ' |' + newline, so an empty cell gives two spaces between pipes. The separator row has '---' per column: '| --- | --- |'. Every line ends with a newline.",
+      "B7: Nothing is written to stdout unless the entire input parsed successfully.",
+      "B8: Invalid JSON: stderr 'jsonmd: invalid JSON: \u003cdetail\u003e', exit 1. An array element or NDJSON value that is not an object: stderr 'jsonmd: element N is not an object' (N is 1-based), exit 1.",
+      "B9: Unreadable file: stderr 'jsonmd: \u003csystem error text\u003e', exit 1.",
+      "B10: Empty or whitespace-only input, zero objects (e.g. []), or objects with no keys at all: stderr 'jsonmd: no data', exit 1."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "example array",
+        "args": [],
+        "stdin": "[{\"name\":\"a\",\"n\":1},{\"name\":\"b\",\"tag\":[1,2]}]\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "| name | n | tag |\n| --- | --- | --- |\n| a | 1 |  |\n| b |  | [1,2] |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "ndjson file pipe null nested",
+        "args": [
+          "d.jsonl"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "d.jsonl",
+            "content": "{\"a\":\"x|y\",\"b\":true}\n{\"b\":null,\"c\":{\"k\": 1.50}}\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "| a | b | c |\n| --- | --- | --- |\n| x\\|y | true |  |\n|  |  | {\"k\":1.50} |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "newline in string",
+        "args": [],
+        "stdin": "[{\"a\":\"l1\\nl2\"}]",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "| a |\n| --- |\n| l1 l2 |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "empty input",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "jsonmd: "
+          ]
+        }
+      },
+      {
+        "name": "non-object element",
+        "args": [],
+        "stdin": "[1,2]",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "jsonmd: element 1 is not an object"
+          ]
+        }
+      },
+      {
+        "name": "invalid json",
+        "args": [],
+        "stdin": "[{\"a\":",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "jsonmd: "
+          ]
+        }
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nofile.json"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "jsonmd: "
+          ]
+        }
+      },
+      {
+        "name": "too many args",
+        "args": [
+          "a.json",
+          "b.json"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "usage: jsonmd [file]"
+          ]
+        }
+      }
+    ]
+  }
+}

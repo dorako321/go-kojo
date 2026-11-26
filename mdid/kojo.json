@@ -1,0 +1,151 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: CSVに行内容由来の固定UUIDを付けMarkdown表にする / 標準入力またはファイルからCSV（1行目はヘッダ）を読み、各行の内容から決定的に作るUUID（SHA-1による名前ベースv5、固定の名前空間）を先頭の id 列に付けて、Markdown の表を標準出力に出す。同じ内容の行は何度実行しても同じIDになり、行を並べ替えても変わらない。例：「name,qty\\nりんご,3」を入力すると「| id | name | qty |」のヘッダ行、区切り行、続いて「| 6f1c…(UUID) | りんご | 3 |」を出力する。セル内の | はエスケープする。フラグは -s（IDを短く先頭8文字にする）のみ。コマンド名は mdid",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "mdid",
+    "summary": "mdid reads CSV from a file or stdin and prints a Markdown table with a deterministic UUID v5 id column computed from each row's content.",
+    "kind": "convert",
+    "usage": "mdid [-s] [file]",
+    "flags": [
+      {
+        "name": "s",
+        "type": "bool",
+        "default": "false",
+        "help": "shorten each id to its first 8 characters"
+      }
+    ],
+    "behavior": [
+      "B1: Takes at most one positional argument, a CSV file path; with none, reads stdin. More than one argument prints \"mdid: usage: mdid [-s] [file]\" to stderr and exits 2. Flag errors exit 2.",
+      "B2: Parse with encoding/csv (FieldsPerRecord = -1, otherwise defaults). If the file cannot be opened or the CSV is malformed, print \"mdid: \" followed by the error text to stderr, nothing to stdout, and exit 1.",
+      "B3: If the input has no records (empty or only blank lines), print \"mdid: empty input\" to stderr and exit 1.",
+      "B4: The first record is the header with N fields. Output line 1 is \"| id | \" + header cells joined by \" | \" + \" |\". Line 2 is the separator: \"| \" + (N+1) copies of \"---\" joined by \" | \" + \" |\". Every output line ends with a single newline.",
+      "B5: Each later record is one data row, printed in input order as \"| \u003cid\u003e | \" + cells joined by \" | \" + \" |\". A row with fewer than N fields is padded with empty strings; fields beyond N are dropped. An empty cell prints as nothing between its separators (e.g. \"| \u003cid\u003e | 1 |  |\"). Input with only a header prints just lines 1 and 2 and exits 0.",
+      "B6: Cell text (header and data) is escaped for output: each | becomes \\| (backslash then pipe), and each CRLF, LF or CR becomes \u003cbr\u003e. Backslashes are otherwise unchanged.",
+      "B7: The id is a UUID v5 (RFC 4122): SHA-1 over the 16 bytes of the fixed namespace 6ba7b810-9dad-11d1-80b4-00c04fd430c8 followed by the UTF-8 name, where the name is the row's N fields (after padding/dropping, before escaping) joined by a single NUL byte. Take the first 16 bytes of the digest, set byte 6 to (b\u00260x0f)|0x50 and byte 8 to (b\u00260x3f)|0x80, and print as lowercase hex 8-4-4-4-12. The id depends only on the row's content, never on position, so identical rows get identical ids and reordering rows does not change them.",
+      "B8: With -s each id is cut to its first 8 characters. Nothing is written to stdout before the whole input has parsed successfully."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "basic",
+        "args": [],
+        "stdin": "name,qty\nりんご,3\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "regex": "^\\| id \\| name \\| qty \\|\\n\\| --- \\| --- \\| --- \\|\\n\\| [0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12} \\| りんご \\| 3 \\|\\n$"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "short id",
+        "args": [
+          "-s"
+        ],
+        "stdin": "name,qty\nりんご,3\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "regex": "^\\| id \\| name \\| qty \\|\\n\\| --- \\| --- \\| --- \\|\\n\\| [0-9a-f]{8} \\| りんご \\| 3 \\|\\n$"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "pipe escaped from file",
+        "args": [
+          "in.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "in.csv",
+            "content": "name,qty\n\"a|b\",2\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "contains": [
+            "a\\|b | 2 |"
+          ]
+        },
+        "stderr": {}
+      },
+      {
+        "name": "short row padded",
+        "args": [
+          "-s"
+        ],
+        "stdin": "a,b\n1\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "regex": "^\\| id \\| a \\| b \\|\\n\\| --- \\| --- \\| --- \\|\\n\\| [0-9a-f]{8} \\| 1 \\|  \\|\\n$"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "header only",
+        "args": [],
+        "stdin": "a,b\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "| id | a | b |\n| --- | --- | --- |\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "empty input",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "mdid: empty input"
+          ]
+        }
+      },
+      {
+        "name": "too many args",
+        "args": [
+          "a.csv",
+          "b.csv"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "usage"
+          ]
+        }
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nope.csv"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "mdid: "
+          ]
+        }
+      }
+    ]
+  }
+}

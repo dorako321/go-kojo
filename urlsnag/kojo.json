@@ -1,0 +1,118 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 文章中のURLの全角文字・空白・末尾の句読点混入を検出する / ファイルまたは標準入力のテキストから http:// や https:// で始まるURLを探し、問題のあるものを行番号・列番号付きで報告する。問題とは、URL内の未エンコードの非ASCII文字（全角や日本語）、直後に貼り付いた「。」「、」「）」「」」などの全角句読点・括弧、末尾の半角のピリオドやカンマである。各問題について、行:列、元のURL、問題の種類、修正案（非ASCII部分をパーセントエンコードし、末尾の混入文字を除いたもの）を1行ずつ出力する。例：「詳細は https://example.com/資料。をご覧ください」という行は「1:4 https://example.com/資料。 全角句読点混入 → https://example.com/%E8%B3%87%E6%96%99」のように出力する。問題が1件でもあれば終了コード1にする。コマンド名は urlsnag",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "urlsnag",
+    "summary": "urlsnag finds http:// and https:// URLs in text and reports those with unencoded non-ASCII characters or stray trailing punctuation, with line:column and a suggested fix.",
+    "kind": "inspect",
+    "usage": "urlsnag [file ...]",
+    "flags": [],
+    "behavior": [
+      "B1: Input is the files named as arguments, read in order; with no arguments it reads stdin. Input is UTF-8 text split into lines at \"\\n\"; a trailing \"\\r\" on a line is removed. Line numbers start at 1 and restart for each file.",
+      "B2: In each line, find every URL start: the earliest occurrence of \"http://\" or \"https://\" (lowercase, exact) at or after the current position. Scanning continues after the end of each URL.",
+      "B3: From the start, the URL extends over characters until the first of: a Unicode whitespace character (including U+3000); an ASCII character among \" \u003c \u003e (double quote, less-than, greater-than); a hiragana character (U+3040-U+309F); or the end of the line. In addition, the URL ends right after the first run of one or more characters from the set P = 。 、 ， ． ） 」 』 】 〉 》 ］ ｝ ！ ？ (those characters are included in the URL, the next character is not). All other characters, including kanji, katakana and other ASCII, are part of the URL.",
+      "B4: Trailing part: repeatedly remove from the end of the URL any character that is in P or is an ASCII period or comma. What remains is the body; the removed characters are the trailer.",
+      "B5: Problem type, chosen in this order: if the trailer contains a character from P, the type is 全角句読点混入; else if the trailer is non-empty (only ASCII . or ,), the type is 末尾句読点; else if the body contains any non-ASCII character, the type is 未エンコード非ASCII; otherwise the URL is fine and nothing is printed for it.",
+      "B6: Fix = the body with every non-ASCII character replaced by the percent-encoding of its UTF-8 bytes, each byte as %XX with uppercase hex. ASCII characters are left unchanged.",
+      "B7: For each problem URL print one line to stdout: LINE:COL, a space, the original URL (including its trailer), a space, the type, a space, \"→\", a space, the fix, then \"\\n\". COL is the 1-based count of characters (runes, not bytes) before the URL start plus one. When more than one file is given, each line is additionally prefixed by the file name and a colon (\"name:LINE:COL ...\").",
+      "B8: Empty input, or input with no problem URLs, prints nothing and exits 0. If at least one problem was printed, exit 1 after processing all input.",
+      "B9: If a file cannot be opened or read, print \"urlsnag: \" followed by the error message to stderr and exit 2 immediately. An unknown flag prints a usage message to stderr and exits 2.",
+      "B10: The program has no flags of its own and makes no network access."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "example fullwidth period",
+        "args": [],
+        "stdin": "詳細は https://example.com/資料。をご覧ください\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1:5 https://example.com/資料。 全角句読点混入 → https://example.com/%E8%B3%87%E6%96%99\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "clean url",
+        "args": [],
+        "stdin": "see https://example.com/a?b=1\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "trailing ascii punctuation",
+        "args": [],
+        "stdin": "Visit http://example.com/a.\nline https://x.org/b,\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1:7 http://example.com/a. 末尾句読点 → http://example.com/a\n2:6 https://x.org/b, 末尾句読点 → https://x.org/b\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "unencoded japanese from file",
+        "args": [
+          "in.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "in.txt",
+            "content": "https://ja.wikipedia.org/wiki/日本\n"
+          }
+        ],
+        "exit": 1,
+        "stdout": {
+          "exact": "1:1 https://ja.wikipedia.org/wiki/日本 未エンコード非ASCII → https://ja.wikipedia.org/wiki/%E6%97%A5%E6%9C%AC\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "fullwidth paren",
+        "args": [],
+        "stdin": "（https://a.com/x）です\n",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": "1:2 https://a.com/x） 全角句読点混入 → https://a.com/x\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "empty stdin",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nofile.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "urlsnag: "
+          ]
+        }
+      }
+    ]
+  }
+}

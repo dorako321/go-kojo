@@ -1,0 +1,139 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: 文中のUNIX時刻を和暦の日時の注釈付きで書き直す / ファイルまたは標準入力のテキストから10桁（秒）または13桁（ミリ秒）のUNIX時刻を見つけ、直後に日本標準時の和暦日時を括弧で添えて出力し、他の部分は変えない。明治以降の改元日を内蔵し、-z でタイムゾーンのオフセット時間を変えられる。例: 「ts=1735689600」は「ts=1735689600（令和7年1月1日 9:00:00）」になる。コマンド名は epochwa",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "epochwa",
+    "summary": "epochwa copies text from files or stdin and appends a Japanese-era date-time in full-width parentheses after every 10-digit or 13-digit UNIX timestamp.",
+    "kind": "convert",
+    "usage": "epochwa [-z hours] [file ...]",
+    "flags": [
+      {
+        "name": "z",
+        "type": "float",
+        "default": "9",
+        "help": "timezone offset from UTC in hours (-12 to 14, fractions allowed)"
+      }
+    ],
+    "behavior": [
+      "B1: Input is the concatenation of the files named as arguments, in order; with no file arguments it is stdin. Input is processed as one byte stream (not line by line), and every byte is written to stdout unchanged except for the insertions in B2.",
+      "B2: A timestamp is a maximal run of ASCII digits 0-9 whose length is exactly 10 (seconds) or exactly 13 (milliseconds). Runs of any other length are copied unchanged. Immediately after the run, insert U+FF08 (full-width left parenthesis), the text from B4, then U+FF09 (full-width right parenthesis).",
+      "B3: Seconds value = the run as an integer; for 13 digits, the integer divided by 1000 with the fraction discarded. Convert to local time using a fixed offset of round(z*3600) seconds from UTC (no DST, no named zones). The default z is 9.",
+      "B4: text = ERA + Y + 年 + M + 月 + D + 日 + one space + h + : + mm + : + ss, where M, D and h are not zero-padded and mm, ss are two digits. Y is 元 if the era year is 1, otherwise the decimal number. Era year = local Gregorian year minus era start year plus 1.",
+      "B5: Eras by local calendar date (inclusive start): 明治 1868-01-25, 大正 1912-07-30, 昭和 1926-12-25, 平成 1989-01-08, 令和 2019-05-01. The latest era whose start date is not after the local date applies. A local date before 1868-01-25 gets no insertion and the digits are copied unchanged.",
+      "B6: Empty input produces empty output and exit 0. A missing trailing newline is not added.",
+      "B7: -z must be a number between -12 and 14 inclusive; otherwise print \"epochwa: invalid -z value\" to stderr and exit 2. Unknown flags also exit 2.",
+      "B8: If a file cannot be read, print \"epochwa: \" followed by the error text to stderr and exit 1; nothing further is processed after the failure."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "seconds default JST",
+        "args": [],
+        "stdin": "ts=1735689600\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "ts=1735689600（令和7年1月1日 9:00:00）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "milliseconds",
+        "args": [],
+        "stdin": "t=1735689600000 end",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "t=1735689600000（令和7年1月1日 9:00:00） end"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "wrong digit counts untouched",
+        "args": [],
+        "stdin": "a 12345678901 b 123456789012 c 12345678901234\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "a 12345678901 b 123456789012 c 12345678901234\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "era boundary Heisei to Reiwa",
+        "args": [],
+        "stdin": "1556636399 1556636400\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "1556636399（平成31年4月30日 23:59:59） 1556636400（令和元年5月1日 0:00:00）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "epoch zero in Showa",
+        "args": [],
+        "stdin": "0000000000",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "0000000000（昭和45年1月1日 9:00:00）"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "offset zero from file",
+        "args": [
+          "-z",
+          "0",
+          "log.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "log.txt",
+            "content": "x 1735689600\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "x 1735689600（令和7年1月1日 0:00:00）\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "invalid z",
+        "args": [
+          "-z",
+          "abc"
+        ],
+        "stdin": "1735689600\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "epochwa:"
+          ]
+        }
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nofile.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "epochwa:"
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: テキスト中のIPv4を/24ごとにまとめ指定幅で折り返して一覧にする / ファイルまたは標準入力のテキストからIPv4アドレスを正規表現で抜き出し、重複を除いて、-p で指定したプレフィックス長（8、16、24のいずれか、既定は24）ごとにグループ化する。各グループを「10.0.1.: 5 12 33 ...」のように共通部分の後に残りの数字を昇順で並べ、-w で指定した表示幅（既定80）を超える場合は折り返して、2行目以降は先頭の見出し分だけインデントする。例：ログに 10.0.1.5、10.0.1.33、10.0.2.7、10.0.1.12 が出てくる場合、「10.0.1.: 5 12 33」と「10.0.2.: 7」の2行を出力する。コマンド名は ipfold",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "ipfold",
+    "summary": "ipfold extracts unique IPv4 addresses from text and prints them grouped by prefix, wrapped to a given width.",
+    "kind": "convert",
+    "usage": "ipfold [-p 8|16|24] [-w width] [file ...]",
+    "flags": [
+      {
+        "name": "p",
+        "type": "int",
+        "default": "24",
+        "help": "prefix length: 8, 16 or 24"
+      },
+      {
+        "name": "w",
+        "type": "int",
+        "default": "80",
+        "help": "display width for wrapping (must be \u003e 0)"
+      }
+    ],
+    "behavior": [
+      "B1: Input is the concatenation of all files named as arguments, in order; with no file arguments it is read from stdin.",
+      "B2: Addresses are found with the regexp [0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+ (leftmost, non-overlapping matches). A match is kept only if every octet has 1 to 3 digits and a decimal value of at most 255; otherwise it is ignored. Octets are printed as plain decimal integers.",
+      "B3: Duplicate addresses are removed.",
+      "B4: With -p 8, 16 or 24 the heading of an address is its first 1, 2 or 3 octets, each followed by a dot, then a colon (e.g. \"10.0.1.:\"). The value is the remaining octets joined by dots (e.g. \"5\", \"1.5\", \"0.1.5\").",
+      "B5: One group per distinct heading prefix. Groups are ordered ascending by the numeric octets of the prefix; values within a group are ordered ascending, comparing the remaining octets numerically one by one.",
+      "B6: A group is printed as the heading, then for each value a single space and the value, then a newline. Lengths are counted in bytes.",
+      "B7: Wrapping: the first value always stays on the heading line. For each later value, if current line length + 1 + value length is greater than the -w width, the line ends with a newline and a new line starts with (heading length + 1) spaces followed by the value; otherwise a space and the value are appended. Values are never split.",
+      "B8: If no addresses are found, nothing is printed and the exit code is 0.",
+      "B9: If -p is not 8, 16 or 24, or -w is less than 1, print \"ipfold: \" followed by a message to stderr and exit 2. Unknown flags are usage errors (exit 2).",
+      "B10: If a file cannot be read, print \"ipfold: \" followed by the error to stderr, continue with the remaining files, print results for the readable input, and exit 1."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "basic",
+        "args": [],
+        "stdin": "log 10.0.1.5 and 10.0.1.33, then 10.0.2.7 and 10.0.1.12\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "10.0.1.: 5 12 33\n10.0.2.: 7\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "prefix16",
+        "args": [
+          "-p",
+          "16"
+        ],
+        "stdin": "10.0.1.5 10.0.2.7 10.0.1.5 10.1.0.1\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "10.0.: 1.5 2.7\n10.1.: 0.1\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "prefix8",
+        "args": [
+          "-p",
+          "8"
+        ],
+        "stdin": "10.0.1.5 10.0.0.1 11.2.3.4\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "10.: 0.0.1 0.1.5\n11.: 2.3.4\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "wrap",
+        "args": [
+          "-w",
+          "20"
+        ],
+        "stdin": "10.0.1.1 10.0.1.22 10.0.1.111 10.0.1.222\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "10.0.1.: 1 22 111\n         222\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "invalid_ignored_from_file",
+        "args": [
+          "a.txt"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "a.txt",
+            "content": "bad 999.1.1.1 good 1.2.3.4\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "1.2.3.: 4\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "no_addresses",
+        "args": [],
+        "stdin": "hello world\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "bad_prefix",
+        "args": [
+          "-p",
+          "20"
+        ],
+        "stdin": "1.2.3.4\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "ipfold: "
+          ]
+        }
+      },
+      {
+        "name": "missing_file",
+        "args": [
+          "nope.txt"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "ipfold: "
+          ]
+        }
+      }
+    ]
+  }
+}

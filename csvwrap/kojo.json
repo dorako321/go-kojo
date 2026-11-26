@@ -1,0 +1,140 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: CSVを端末幅に収まる折り返し付き表で表示する / 標準入力またはファイルのCSVを読み、全体の幅が -w で指定した表示幅（既定80）に収まるよう各列の幅を配分し、長いセルは列内で折り返して複数行にした罫線付きの表を標準出力に出す。日本語など全角文字は幅2として数え、文字の途中でも切って折り返す。例：説明列に長い文章があるCSVを -w 60 で渡すと、他の列は短く保たれ、説明列だけが3行に折り返されて同じ行の中に表示される。フラグは -w（幅）のみ。コマンド名は csvwrap",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "csvwrap",
+    "summary": "csvwrap reads CSV from a file or stdin and prints a ruled table that fits a given display width, wrapping long cells inside their columns.",
+    "kind": "convert",
+    "usage": "csvwrap [-w width] [file]",
+    "flags": [
+      {
+        "name": "w",
+        "type": "int",
+        "default": "80",
+        "help": "total display width of the table, including borders and padding"
+      }
+    ],
+    "behavior": [
+      "B1: Read CSV with encoding/csv (FieldsPerRecord = -1) from the single file argument, or from stdin if no argument is given. More than one positional argument is a usage error: print \"csvwrap: usage: csvwrap [-w width] [file]\" to stderr, exit 2.",
+      "B2: The first record is the header. Let n be the maximum number of fields in any record; shorter records are padded with empty cells. Carriage returns are removed from cell text. Display width of a string is the sum of go-runewidth RuneWidth of its runes.",
+      "B3: If there are no records (empty input), print nothing and exit 0.",
+      "B4: Each column has 1 space of padding on both sides and cells are separated by \"|\". Total table width = sum(column widths) + 3*n + 1. Each column width is at least 2. If w \u003c 5*n + 1, print \"csvwrap: width too small for N columns (need at least M)\" to stderr (N = n, M = 5*n+1) and exit 2.",
+      "B5: Natural width of a column is the maximum display width of its cells (at least 1; a cell is split at newline characters and each part counts separately). Let avail = w - (3*n + 1). If the sum of natural widths \u003c= avail, every column uses its natural width.",
+      "B6: Otherwise find the largest integer L such that sum(min(natural_i, L)) \u003c= avail. Columns with natural \u003c= L get their natural width; all other columns get L. Then let rest = avail minus the sum of the widths; add 1 to the width of the leftmost columns that got L, one each, until rest is used up.",
+      "B7: Wrapping: split a cell at newline characters into parts; an empty part gives one empty line. Each part is hard-wrapped by display width: add runes to the current line while its width stays \u003c= the column width; a rune that would exceed it starts a new line (so a wide character is never split, and the line is padded with spaces). A cell has at least one line.",
+      "B8: Output: a border line, the header row, a border line, each data row, and a final border line. A border line is \"+\" followed by, for each column, (width+2) \"-\" characters and \"+\". A row with k lines (k = max line count over its cells) prints k text lines; each is \"|\" followed by, for each column, a space, the cell's line (empty if the cell has fewer lines) padded with spaces on the right to the column width, a space, and \"|\". Every line ends with a newline.",
+      "B9: If the file cannot be opened or the CSV cannot be parsed, print \"csvwrap: \" followed by the error to stderr and exit 1, printing nothing to stdout. Invalid -w value is a usage error, exit 2. On success exit 0."
+    ],
+    "deps": [
+      "github.com/mattn/go-runewidth"
+    ],
+    "network": false,
+    "cases": [
+      {
+        "name": "basic file",
+        "args": [
+          "data.csv"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "data.csv",
+            "content": "name,age\nalice,30\nbob,4\n"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "+-------+-----+\n| name  | age |\n+-------+-----+\n| alice | 30  |\n| bob   | 4   |\n+-------+-----+\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "wrap long cell",
+        "args": [
+          "-w",
+          "15"
+        ],
+        "stdin": "id,desc\n1,abcdefghij\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "+----+--------+\n| id | desc   |\n+----+--------+\n| 1  | abcdef |\n|    | ghij   |\n+----+--------+\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "wide chars wrap",
+        "args": [
+          "-w",
+          "10"
+        ],
+        "stdin": "k\nあいうえお\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "+--------+\n| k      |\n+--------+\n| あいう |\n| えお   |\n+--------+\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "wide char does not fit",
+        "args": [
+          "-w",
+          "9"
+        ],
+        "stdin": "k\nあいう\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "+-------+\n| k     |\n+-------+\n| あい  |\n| う    |\n+-------+\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "empty input",
+        "args": [],
+        "stdin": "",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {}
+      },
+      {
+        "name": "width too small",
+        "args": [
+          "-w",
+          "5"
+        ],
+        "stdin": "a,b\n1,2\n",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "csvwrap: width too small for 2 columns (need at least 11)"
+          ]
+        }
+      },
+      {
+        "name": "missing file",
+        "args": [
+          "nosuchfile.csv"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 1,
+        "stdout": {
+          "exact": ""
+        },
+        "stderr": {
+          "contains": [
+            "csvwrap: "
+          ]
+        }
+      }
+    ]
+  }
+}

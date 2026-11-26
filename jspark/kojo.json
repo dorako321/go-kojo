@@ -1,0 +1,145 @@
+{
+  "factory": "go-kojo",
+  "request": "mix: JSONの数値フィールドをスパークラインにする / 標準入力またはファイルから、JSON配列または1行1件のJSON（NDJSON）を読み、-k で指定したキー（a.b のようにドット区切りで入れ子も可）の数値を取り出して、▁▂▃▄▅▆▇█ のスパークラインを1行で標準出力に出す。続けて最小値・最大値・件数も表示する。キーがない要素は読み飛ばす。例：「[{\"ms\":120},{\"ms\":340},{\"ms\":90}]」を -k ms で渡すと「▃█▁  min=90 max=340 n=3」と出力する。-k を省略し要素が数値そのものの配列なら、そのまま描く。フラグは -k のみ。コマンド名は jspark",
+  "model": "claude-sonnet-5-5",
+  "spec": {
+    "name": "jspark",
+    "summary": "jspark reads a JSON array or NDJSON from a file or stdin, extracts numbers (optionally at a dotted key path) and prints a one-line sparkline with min, max and count.",
+    "kind": "convert",
+    "usage": "jspark [-k key] [file]",
+    "flags": [
+      {
+        "name": "k",
+        "type": "string",
+        "default": "",
+        "help": "key path of the number in each element, dot-separated for nesting (e.g. a.b)"
+      }
+    ],
+    "behavior": [
+      "B1: Input is read from the single positional file argument, or from stdin if there is none. More than one positional argument is a usage error: print \"jspark: usage: jspark [-k key] [file]\" to stderr, exit 2.",
+      "B2: If the file cannot be read, print \"jspark: \" followed by the OS error text to stderr, exit 1.",
+      "B3: Format detection: skip leading whitespace; if the first character is '[' the whole input is parsed as one JSON array and its items are the elements. Otherwise every non-blank line is parsed as one JSON value (NDJSON) and each value is an element. Invalid JSON in either mode: print \"jspark: invalid JSON\" (optionally followed by \": \" and a detail) to stderr, exit 1.",
+      "B4: With -k set, an element is used only if it is a JSON object and following the key split on '.' through nested objects reaches a JSON number. Anything else (missing key, non-object on the path, string, bool, null, object, array) is skipped silently. With -k omitted, an element is used only if it is itself a JSON number; all others are skipped.",
+      "B5: Used values keep input order. n is the count of used values. If n is 0 (including empty or whitespace-only input), print \"jspark: no numeric values found\" to stderr, exit 1, nothing on stdout.",
+      "B6: Let min and max be the smallest and largest used value. Each value v maps to level L = floor((v-min)/(max-min)*7 + 0.5), an integer 0 to 7, drawn as the L-th character (0-based) of the string ▁▂▃▄▅▆▇█. If min equals max, every value is drawn as ▁.",
+      "B7: On success print to stdout: the sparkline characters, two spaces, then \"min=\u003cmin\u003e max=\u003cmax\u003e n=\u003cn\u003e\" and a newline. Numbers are formatted with strconv.FormatFloat(v, 'f', -1, 64) (no trailing zeros, no exponent). Exit 0."
+    ],
+    "deps": [],
+    "network": false,
+    "cases": [
+      {
+        "name": "example-ms",
+        "args": [
+          "-k",
+          "ms"
+        ],
+        "stdin": "[{\"ms\":120},{\"ms\":340},{\"ms\":90}]",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "▂█▁  min=90 max=340 n=3\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "plain-numbers",
+        "args": [],
+        "stdin": "[1,2,3,4,5,6,7,8]",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "▁▂▃▄▅▆▇█  min=1 max=8 n=8\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "ndjson-nested-skip",
+        "args": [
+          "-k",
+          "a.b"
+        ],
+        "stdin": "{\"a\":{\"b\":0}}\n{\"a\":{\"c\":1}}\n\n{\"a\":{\"b\":7}}\n5\n",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "▁█  min=0 max=7 n=2\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "all-equal",
+        "args": [],
+        "stdin": "[5,5,5]",
+        "files": [],
+        "exit": 0,
+        "stdout": {
+          "exact": "▁▁▁  min=5 max=5 n=3\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "file-decimals",
+        "args": [
+          "d.json"
+        ],
+        "stdin": "",
+        "files": [
+          {
+            "name": "d.json",
+            "content": "[0.5,1.5]"
+          }
+        ],
+        "exit": 0,
+        "stdout": {
+          "exact": "▁█  min=0.5 max=1.5 n=2\n"
+        },
+        "stderr": {}
+      },
+      {
+        "name": "invalid-json",
+        "args": [],
+        "stdin": "[1,2",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "jspark:"
+          ]
+        }
+      },
+      {
+        "name": "no-numbers",
+        "args": [
+          "-k",
+          "ms"
+        ],
+        "stdin": "[{\"x\":1}]",
+        "files": [],
+        "exit": 1,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "jspark: no numeric values found"
+          ]
+        }
+      },
+      {
+        "name": "too-many-args",
+        "args": [
+          "a.json",
+          "b.json"
+        ],
+        "stdin": "",
+        "files": [],
+        "exit": 2,
+        "stdout": {},
+        "stderr": {
+          "contains": [
+            "usage"
+          ]
+        }
+      }
+    ]
+  }
+}
