@@ -1,0 +1,26 @@
+# {{.Spec.Name}}
+
+{{.Spec.Summary}}
+
+## Install
+
+```
+go install {{.Module}}@latest
+```
+
+## Usage
+
+```
+{{.Help}}```
+{{range .Examples}}
+```
+$ {{.Command}}
+{{.Output}}```
+{{end}}
+## License
+
+MIT
+
+---
+
+Built by [go-kojo](https://github.com/dorako321/go-kojo). The request, the spec and the acceptance cases this program was inspected against are in `kojo.json`.

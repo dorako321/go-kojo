@@ -1,0 +1,65 @@
+// {{.Spec.Name}}: {{.Spec.Summary}}
+package main
+
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"runtime/debug"
+)
+
+// version is set at release time with -ldflags "-X main.version=v1.2.3".
+var version = ""
+
+const usage = `{{.Spec.Summary}}
+
+Usage:
+  {{.Spec.Usage}}
+
+Examples:
+  TODO
+
+Flags:
+`
+
+func main() {
+	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+}
+
+// run is the whole program. It returns the exit code:
+// 0 success, 1 failure, 2 usage error.
+func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("{{.Spec.Name}}", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	fs.Usage = func() {}
+	showVersion := fs.Bool("version", false, "print version and exit")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(stdout, usage)
+			fs.SetOutput(stdout)
+			fs.PrintDefaults()
+			return 0
+		}
+		fmt.Fprintln(stderr, "Run '{{.Spec.Name}} -h' for usage.")
+		return 2
+	}
+	if *showVersion {
+		fmt.Fprintln(stdout, buildVersion())
+		return 0
+	}
+
+	fmt.Fprintln(stderr, "{{.Spec.Name}}: not implemented")
+	return 1
+}
+
+func buildVersion() string {
+	if version != "" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" {
+		return bi.Main.Version
+	}
+	return "dev"
+}

@@ -1,0 +1,85 @@
+{
+  "name": "csv2md",
+  "summary": "csv2md converts CSV or TSV into a Markdown table.",
+  "kind": "convert",
+  "usage": "csv2md [-t] [file]",
+  "flags": [
+    {"name": "t", "type": "bool", "default": "false", "help": "read the input as tab-separated values"}
+  ],
+  "behavior": [
+    "B1: Read the input from the file named by the first argument, or from stdin when no file is given.",
+    "B2: Parse the input as CSV (RFC 4180, as Go's encoding/csv does). With -t the field separator is a tab instead of a comma.",
+    "B3: The first record is the header. Print the header row, then a separator row with '---' in every column, then one row per remaining record.",
+    "B4: A row is the cells joined by ' | ', with '| ' before the first cell and ' |' after the last, followed by a newline. Example: '| a | b |'.",
+    "B5: Inside a cell, write a pipe character as '\\|' and a newline as '<br>'.",
+    "B6: Input with no records prints nothing and exits 0.",
+    "B7: On malformed CSV, including a record whose field count differs from the header, print an error starting with 'csv2md: ' to stderr and exit 1.",
+    "B8: If the file cannot be read, print an error starting with 'csv2md: ' to stderr and exit 1."
+  ],
+  "deps": [],
+  "network": false,
+  "cases": [
+    {
+      "name": "basic",
+      "stdin": "name,qty\napple,3\nbanana,12\n",
+      "exit": 0,
+      "stdout": {"exact": "| name | qty |\n| --- | --- |\n| apple | 3 |\n| banana | 12 |\n"}
+    },
+    {
+      "name": "tsv",
+      "args": ["-t"],
+      "stdin": "a\tb\n1\t2\n",
+      "exit": 0,
+      "stdout": {"exact": "| a | b |\n| --- | --- |\n| 1 | 2 |\n"}
+    },
+    {
+      "name": "file",
+      "args": ["in.csv"],
+      "files": [{"name": "in.csv", "content": "x,y,z\n1,2,3\n"}],
+      "exit": 0,
+      "stdout": {"exact": "| x | y | z |\n| --- | --- | --- |\n| 1 | 2 | 3 |\n"}
+    },
+    {
+      "name": "quoted",
+      "stdin": "\"a,b\",c\n\"say \"\"hi\"\"\",d\n",
+      "exit": 0,
+      "stdout": {"exact": "| a,b | c |\n| --- | --- |\n| say \"hi\" | d |\n"}
+    },
+    {
+      "name": "pipe-and-newline",
+      "stdin": "h1,h2\n\"a|b\",\"line1\nline2\"\n",
+      "exit": 0,
+      "stdout": {"exact": "| h1 | h2 |\n| --- | --- |\n| a\\|b | line1<br>line2 |\n"}
+    },
+    {
+      "name": "header-only",
+      "stdin": "only,header\n",
+      "exit": 0,
+      "stdout": {"exact": "| only | header |\n| --- | --- |\n"}
+    },
+    {
+      "name": "empty",
+      "stdin": "",
+      "exit": 0,
+      "stdout": {"exact": ""}
+    },
+    {
+      "name": "ragged",
+      "stdin": "a,b\n1,2,3\n",
+      "exit": 1,
+      "stderr": {"contains": ["csv2md: "]}
+    },
+    {
+      "name": "unterminated-quote",
+      "stdin": "a,\"b\n",
+      "exit": 1,
+      "stderr": {"contains": ["csv2md: "]}
+    },
+    {
+      "name": "missing-file",
+      "args": ["nope.csv"],
+      "exit": 1,
+      "stderr": {"contains": ["csv2md: "]}
+    }
+  ]
+}

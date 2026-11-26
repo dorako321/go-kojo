@@ -1,0 +1,121 @@
+// csv2md: csv2md converts CSV or TSV into a Markdown table.
+package main
+
+import (
+	"encoding/csv"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"runtime/debug"
+	"strings"
+)
+
+// version is set at release time with -ldflags "-X main.version=v1.2.3".
+var version = ""
+
+const usage = `csv2md converts CSV or TSV into a Markdown table.
+
+Usage:
+  csv2md [-t] [file]
+
+Examples:
+  csv2md data.csv
+  csv2md -t data.tsv
+  cat data.csv | csv2md
+
+Flags:
+`
+
+func main() {
+	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+}
+
+// run is the whole program. It returns the exit code:
+// 0 success, 1 failure, 2 usage error.
+func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("csv2md", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	fs.Usage = func() {}
+	showVersion := fs.Bool("version", false, "print version and exit")
+	tsv := fs.Bool("t", false, "read the input as tab-separated values")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(stdout, usage)
+			fs.SetOutput(stdout)
+			fs.PrintDefaults()
+			return 0
+		}
+		fmt.Fprintln(stderr, "Run 'csv2md -h' for usage.")
+		return 2
+	}
+	if *showVersion {
+		fmt.Fprintln(stdout, buildVersion())
+		return 0
+	}
+
+	var in io.Reader = stdin
+	if fs.NArg() > 0 {
+		f, err := os.Open(fs.Arg(0))
+		if err != nil {
+			fmt.Fprintln(stderr, "csv2md: "+err.Error())
+			return 1
+		}
+		defer f.Close()
+		in = f
+	} else if f, ok := stdin.(*os.File); ok {
+		if st, err := f.Stat(); err == nil && st.Mode()&os.ModeCharDevice != 0 {
+			fmt.Fprintln(stderr, "Run 'csv2md -h' for usage.")
+			return 2
+		}
+	}
+
+	r := csv.NewReader(in)
+	if *tsv {
+		r.Comma = '\t'
+	}
+	records, err := r.ReadAll()
+	if err != nil {
+		fmt.Fprintln(stderr, "csv2md: "+err.Error())
+		return 1
+	}
+	if len(records) == 0 {
+		return 0
+	}
+
+	var sb strings.Builder
+	writeRow := func(cells []string) {
+		sb.WriteString("| ")
+		for i, c := range cells {
+			if i > 0 {
+				sb.WriteString(" | ")
+			}
+			c = strings.ReplaceAll(c, "|", "\\|")
+			c = strings.ReplaceAll(c, "\n", "<br>")
+			sb.WriteString(c)
+		}
+		sb.WriteString(" |\n")
+	}
+	writeRow(records[0])
+	sep := make([]string, len(records[0]))
+	for i := range sep {
+		sep[i] = "---"
+	}
+	writeRow(sep)
+	for _, rec := range records[1:] {
+		writeRow(rec)
+	}
+	io.WriteString(stdout, sb.String())
+	return 0
+}
+
+func buildVersion() string {
+	if version != "" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" {
+		return bi.Main.Version
+	}
+	return "dev"
+}

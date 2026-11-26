@@ -1,0 +1,874 @@
+{
+ "rounds": [
+  [
+   {
+    "name": "uuidtime",
+    "fun": 3,
+    "fit": 5,
+    "use": 4,
+    "fresh": 4,
+    "pitch": "UUID v1/v7の時刻を読み取り、指定時刻のv7を作る",
+    "reason": "UUIDv7やv1から時刻を読み取るのは開発者がデバッグで実際に行う作業であり、出力を検証しやすく小さく作れる。",
+    "order": "引数または標準入力の UUID（v1 か v7）から埋め込まれた時刻を取り出し、UNIX 時刻（ミリ秒）と ISO 8601 の日時（-z でタイムゾーン指定、既定UTC）で表示する。逆に -g と日時またはUNIX時刻を渡すと、その時刻を持つ UUIDv7 を生成する。例：「018f3b2e-7c00-7000-8000-000000000000」を入れると対応する日時が出力され、-g 2024-05-01T00:00:00Z で 2024年5月1日の v7 が出る。コマンド名は uuidtime"
+   },
+   {
+    "name": "sparktree",
+    "fun": 4,
+    "fit": 4,
+    "use": 3,
+    "fresh": 4,
+    "pitch": "階層名つき数列をツリーにしスパークラインを添える",
+    "reason": "パスごとの数列を合計して親ノードにスパークラインを付ける組み合わせには必然性があり、見せたくなる。ただし最小値を基準にするか0を基準にするかが決まっていない。",
+    "order": "各行が「a/b/c 3 5 2 8」のように、スラッシュ区切りの階層名と数値列である入力を標準入力またはファイルから読み、ツリー表示にする。葉には自分の数列のスパークライン、親ノードには子の数列を要素ごとに合計したスパークラインと合計値を表示する。例：「api/users 1 3 2」「api/orders 2 2 5」から、api が「▃▅▇」、その下に users と orders が並ぶ出力を得る。コマンド名は sparktree"
+   },
+   {
+    "name": "nendo",
+    "fun": 3,
+    "fit": 4,
+    "use": 2,
+    "fresh": 4,
+    "pitch": "日付が属する年度を和暦で表し経過を進捗バーで示す",
+    "reason": "和暦の年度と進捗バーの組み合わせは見て楽しいが、何度も使う場面は少ない。また例の240/365日は約66%なのに58%と書かれており、注文の数値が誤っている。",
+    "order": "（この案は作られませんでした）"
+   },
+   {
+    "name": "mdspark",
+    "fun": 3,
+    "fit": 4,
+    "use": 3,
+    "fresh": 2,
+    "pitch": "CSVをMarkdown表にし数値列の推移を末尾行に付ける",
+    "reason": "CSVをMarkdown表に変換するツールはありふれており、推移行を付ける点だけでは差別化として弱い。",
+    "order": "（この案は作られませんでした）"
+   },
+   {
+    "name": "lenhist",
+    "fun": 2,
+    "fit": 5,
+    "use": 2,
+    "fresh": 3,
+    "pitch": "行長の分布を棒グラフにし折り返し幅の目安を出す",
+    "reason": "作るのは簡単だが、推奨幅を知りたい場面は少なく、組み合わせにも面白みが乏しい。",
+    "order": "（この案は作られませんでした）"
+   },
+   {
+    "name": "logwa",
+    "fun": 2,
+    "fit": 5,
+    "use": 2,
+    "fresh": 3,
+    "pitch": "ログ内の西暦日付の後ろに和暦を注記する",
+    "reason": "ログに和暦を付け加えたい人はほとんどおらず、組み合わせが無理やりに感じられる。",
+    "order": "（この案は作られませんでした）"
+   },
+   {
+    "name": "mdwrap",
+    "fun": 2,
+    "fit": 3,
+    "use": 3,
+    "fresh": 3,
+    "pitch": "Markdownの構造を壊さず段落だけを指定幅で折り返す",
+    "reason": "全角幅を考慮したMarkdown折り返しには需要があるが、リストや引用、表、コードの判定を200行に収めるのは厳しい。",
+    "order": "（この案は作られませんでした）"
+   }
+  ],
+  [
+   {
+    "name": "uuidera",
+    "fun": 2,
+    "fit": 4,
+    "use": 2,
+    "fresh": 1,
+    "pitch": "UUIDv1/v7の生成時刻を和暦と日本時間で表示する",
+    "reason": "既存のuuidtimeに和暦表示を足しただけのほぼ重複で、UUIDの時刻を和暦で見たい場面も少ない。",
+    "order": "引数または標準入力の行からUUID（v1またはv7）を読み、埋め込まれた時刻を日本時間（JST）に直し、和暦付きで出力する。和暦は明治6年以降の令和・平成・昭和・大正・明治に対応し、それ以前は西暦のみ表示する。v1は1582年起点の100ナノ秒、v7は先頭48ビットのUnixミリ秒として解釈し、他のバージョンはエラー行にする。例: 入力 017F22E2-79B0-7CC3-98C4-DC0C0C07398F → 出力 「017F22E2-79B0-7CC3-98C4-DC0C0C07398F 令和4年2月23日 04:42:22 JST」。コマンド名は uuidera"
+   }
+  ],
+  [
+   {
+    "name": "tsbar",
+    "fun": 3,
+    "fit": 5,
+    "use": 4,
+    "fresh": 3,
+    "pitch": "UNIX時刻の列を時間帯ごとに数えて横棒グラフにする",
+    "reason": "ログのUNIX時刻を時間帯ごとに数えて棒グラフで見る作業は実際によくあり、出力の正しさも確かめやすい。",
+    "order": "標準入力またはファイルから、1行1個のUNIX時刻（秒またはミリ秒、桁数で自動判定）を読み、-u で指定した単位（minute/hour/day、既定 hour）ごとに件数を数えて、日時ラベル付きの横棒グラフを標準出力に出す。-w で棒の最大幅（既定40）、-z でJST/UTC切替でもよいが、フラグは最大3個まで。例: 1700000000, 1700000100, 1700003700 を入力すると「2023-11-15 07:00 ██████████ 2」「2023-11-15 08:00 █████ 1」のように出る（JST）。件数ゼロの時間帯も途中は空行として表示する。コマンド名は tsbar"
+   },
+   {
+    "name": "csvbar",
+    "fun": 3,
+    "fit": 5,
+    "use": 3,
+    "fresh": 3,
+    "pitch": "CSVをMarkdown表にし、数値列を進捗バー化する",
+    "reason": "README や Issue で進捗表を作るのに手軽に使えそうだが、中身はCSVをMarkdown表にする既存の変換に棒を加えただけだ。",
+    "order": "（この案は作られませんでした）"
+   },
+   {
+    "name": "thread",
+    "fun": 3,
+    "fit": 5,
+    "use": 3,
+    "fresh": 3,
+    "pitch": "長文を文の切れ目で指定幅ごとに番号付き分割する",
+    "reason": "SNSのスレッド投稿用に文の切れ目で分ける用途ははっきりしているが、番号の分も幅に数えるのかどうかが仕様に書かれていない。",
+    "order": "（この案は作られませんでした）"
+   },
+   {
+    "name": "yensp",
+    "fun": 3,
+    "fit": 4,
+    "use": 2,
+    "fresh": 4,
+    "pitch": "円の表記が混在した金額列をスパークライン化する",
+    "reason": "日本語の金額表記を読み取る部分は新しいが、スパークラインにする必要は薄く、例の棒の高さにも矛盾がある。",
+    "order": "（この案は作られませんでした）"
+   },
+   {
+    "name": "uuidspan",
+    "fun": 2,
+    "fit": 5,
+    "use": 2,
+    "fresh": 2,
+    "pitch": "UUID群の時刻範囲と件数を1行に要約する",
+    "reason": "棚にあるuuidtimeとuuidera、それにsortとheadを組み合わせれば同じことができ、要約を1行にしただけの差しかない。",
+    "order": "（この案は作られませんでした）"
+   }
+  ]
+ ],
+ "products": {
+  "sparktree": {
+   "propose": {
+    "action": "propose",
+    "message": "階層名つき数列をツリーにしスパークラインを添える道具として作ります。",
+    "options": [],
+    "spec": {
+     "name": "sparktree",
+     "summary": "sparktree reads slash-separated hierarchy paths with numeric series and prints a tree with a sparkline per node.",
+     "kind": "display",
+     "usage": "sparktree [file ...]",
+     "flags": [],
+     "behavior": [
+      "B1: Input comes from the files named as arguments, read in order; with no arguments it reads stdin. Line numbers restart at 1 for each file.",
+      "B2: Each non-blank line is a path followed by one or more numbers, separated by spaces or tabs. Blank or whitespace-only lines are skipped. The path is split on '/'.",
+      "B3: A line is malformed if it has no numbers, if any number does not parse as a float64 or is negative, or if the path has an empty segment (leading, trailing or doubled '/'). For each malformed line print 'sparktree: line N: <reason>' to stderr (N is the 1-based line number in that file), skip the line and continue. If any line was malformed the exit code is 1, after the tree of the valid lines is printed.",
+      "B4: A file that cannot be opened prints 'sparktree: cannot read <name>: <error>' to stderr, is skipped, and makes the exit code 1. Other files are still processed.",
+      "B5: Every distinct path prefix is a node. Siblings keep the order of first appearance in the input (across all files). A node's series is the element-wise sum of the series of all lines whose path equals the node's path or lies below it; shorter series are padded with zeros to the longest length. A repeated path is thereby added element-wise.",
+      "B6: Sparkline characters are the 7 blocks ▁▂▃▄▅▆▇ (indexes 0..6). For a node whose series has maximum m, value v maps to index ceil(v*7/m)-1 (float64 arithmetic), and to index 0 when m is 0 or v is 0. So the maximum value always maps to ▇.",
+      "B7: Each node prints one line: prefix, connector, name, one space, sparkline. A node that has child nodes additionally prints one space and the sum of all values of its series, formatted with strconv.FormatFloat(v,'f',-1,64). Leaves print no total.",
+      "B8: Top-level nodes have empty prefix and no connector. For children, the connector is '├── ' for a non-last sibling and '└── ' for the last sibling. The prefix of a node's children is the node's prefix plus '│   ' if the node is a non-last sibling, or four spaces if it is the last sibling (top-level nodes add nothing). Every line ends with a newline.",
+      "B9: Empty input (or no valid lines) prints nothing and exits 0 if there was no error. Invalid command-line usage exits 2."
+     ],
+     "deps": [],
+     "network": false,
+     "cases": [
+      {
+       "name": "basic",
+       "args": [],
+       "stdin": "api/users 1 3 2\napi/orders 2 2 5\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "api ▃▅▇ 15\n├── users ▃▇▅\n└── orders ▃▃▇\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "deep",
+       "args": [],
+       "stdin": "a/b/c 1 1\na/d 2 2\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "a ▇▇ 6\n├── b ▇▇ 2\n│   └── c ▇▇\n└── d ▇▇\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "padding",
+       "args": [],
+       "stdin": "x/a 1 2 4\nx/b 4\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "x ▇▃▆ 11\n├── a ▂▄▇\n└── b ▇\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "repeat",
+       "args": [],
+       "stdin": "a 1 2\n\na 1 2\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "a ▄▇\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "empty",
+       "args": [],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": ""
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "badline",
+       "args": [],
+       "stdin": "a 1 x\nb 1 2\n",
+       "files": [],
+       "exit": 1,
+       "stdout": {
+        "mode": "exact",
+        "value": "b ▄▇\n"
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "sparktree: line 1:"
+       }
+      },
+      {
+       "name": "missingfile",
+       "args": [
+        "nope.txt"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 1,
+       "stdout": {
+        "mode": "any",
+        "value": ""
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "sparktree: cannot read nope.txt"
+       }
+      },
+      {
+       "name": "filezero",
+       "args": [
+        "in.txt"
+       ],
+       "stdin": "",
+       "files": [
+        {
+         "name": "in.txt",
+         "content": "z 0 0\n"
+        }
+       ],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "z ▁▁\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      }
+     ]
+    }
+   },
+   "source": "// sparktree: sparktree reads slash-separated hierarchy paths with numeric series and prints a tree with a sparkline per node.\npackage main\n\nimport (\n\t\"errors\"\n\t\"flag\"\n\t\"fmt\"\n\t\"io\"\n\t\"math\"\n\t\"os\"\n\t\"runtime/debug\"\n\t\"strconv\"\n\t\"strings\"\n)\n\n// version is set at release time with -ldflags \"-X main.version=v1.2.3\".\nvar version = \"\"\n\nconst usage = `sparktree reads slash-separated hierarchy paths with numeric series and prints a tree with a sparkline per node.\n\nUsage:\n  sparktree [file ...]\n\nExamples:\n  printf 'api/users 1 3 2\\napi/orders 2 2 5\\n' | sparktree\n  sparktree metrics.txt\n  sparktree a.txt b.txt\n\nFlags:\n`\n\ntype node struct {\n\tname     string\n\tchildren []*node\n\tseries   []float64\n}\n\nfunc main() {\n\tos.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))\n}\n\n// run is the whole program. It returns the exit code:\n// 0 success, 1 failure, 2 usage error.\nfunc run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {\n\tfs := flag.NewFlagSet(\"sparktree\", flag.ContinueOnError)\n\tfs.SetOutput(stderr)\n\tfs.Usage = func() {}\n\tshowVersion := fs.Bool(\"version\", false, \"print version and exit\")\n\tif err := fs.Parse(args); err != nil {\n\t\tif errors.Is(err, flag.ErrHelp) {\n\t\t\tfmt.Fprint(stdout, usage)\n\t\t\tfs.SetOutput(stdout)\n\t\t\tfs.PrintDefaults()\n\t\t\treturn 0\n\t\t}\n\t\tfmt.Fprintln(stderr, \"Run 'sparktree -h' for usage.\")\n\t\treturn 2\n\t}\n\tif *showVersion {\n\t\tfmt.Fprintln(stdout, buildVersion())\n\t\treturn 0\n\t}\n\n\tfiles := fs.Args()\n\troot := &node{}\n\tcode := 0\n\tif len(files) == 0 {\n\t\tif f, ok := stdin.(*os.File); ok {\n\t\t\tif st, err := f.Stat(); err == nil && st.Mode()&os.ModeCharDevice != 0 {\n\t\t\t\tfmt.Fprintln(stderr, \"Run 'sparktree -h' for usage.\")\n\t\t\t\treturn 2\n\t\t\t}\n\t\t}\n\t\tcode = parse(stdin, root, stderr)\n\t}\n\tfor _, name := range files {\n\t\tf, err := os.Open(name)\n\t\tif err != nil {\n\t\t\tfmt.Fprintf(stderr, \"sparktree: cannot read %s: %v\\n\", name, err)\n\t\t\tcode = 1\n\t\t\tcontinue\n\t\t}\n\t\tcode = max(code, parse(f, root, stderr))\n\t\tf.Close()\n\t}\n\trender(stdout, root.children, \"\", true)\n\treturn code\n}\n\n// parse adds the lines of r to root and returns 1 if any line was malformed.\nfunc parse(r io.Reader, root *node, stderr io.Writer) int {\n\tdata, err := io.ReadAll(r)\n\tcode := 0\n\tif err != nil {\n\t\tfmt.Fprintf(stderr, \"sparktree: %v\\n\", err)\n\t\tcode = 1\n\t}\n\tfor i, line := range strings.Split(string(data), \"\\n\") {\n\t\tif reason := addLine(line, root); reason != \"\" {\n\t\t\tfmt.Fprintf(stderr, \"sparktree: line %d: %s\\n\", i+1, reason)\n\t\t\tcode = 1\n\t\t}\n\t}\n\treturn code\n}\n\nfunc addLine(line string, root *node) string {\n\tf := strings.Fields(line)\n\tif len(f) == 0 {\n\t\treturn \"\"\n\t} else if len(f) < 2 {\n\t\treturn \"no numbers\"\n\t}\n\tseries := make([]float64, len(f)-1)\n\tfor i, s := range f[1:] {\n\t\tv, err := strconv.ParseFloat(s, 64)\n\t\tif err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {\n\t\t\treturn fmt.Sprintf(\"invalid or negative number %q\", s)\n\t\t}\n\t\tseries[i] = v\n\t}\n\tsegs := strings.Split(f[0], \"/\")\n\tfor _, s := range segs {\n\t\tif s == \"\" {\n\t\t\treturn \"empty path segment\"\n\t\t}\n\t}\n\tn := root\n\tfor _, s := range segs {\n\t\tvar c *node\n\t\tfor _, x := range n.children {\n\t\t\tif x.name == s {\n\t\t\t\tc = x\n\t\t\t}\n\t\t}\n\t\tif c == nil {\n\t\t\tc = &node{name: s}\n\t\t\tn.children = append(n.children, c)\n\t\t}\n\t\tn = c\n\t\tn.series = append(n.series, make([]float64, max(0, len(series)-len(n.series)))...)\n\t\tfor i, v := range series {\n\t\t\tn.series[i] += v\n\t\t}\n\t}\n\treturn \"\"\n}\n\nfunc spark(s []float64) string {\n\tm := 0.0\n\tfor _, v := range s {\n\t\tm = math.Max(m, v)\n\t}\n\tblocks, out := []rune(\"▁▂▃▄▅▆▇\"), make([]rune, len(s))\n\tfor i, v := range s {\n\t\tif m != 0 && v != 0 {\n\t\t\tout[i] = blocks[min(6, max(0, int(math.Ceil(v*7/m))-1))]\n\t\t} else {\n\t\t\tout[i] = blocks[0]\n\t\t}\n\t}\n\treturn string(out)\n}\n\nfunc render(w io.Writer, nodes []*node, prefix string, top bool) {\n\tfor i, n := range nodes {\n\t\tconn, ext := \"\", \"\"\n\t\tif !top && i < len(nodes)-1 {\n\t\t\tconn, ext = \"├── \", \"│   \"\n\t\t} else if !top {\n\t\t\tconn, ext = \"└── \", \"    \"\n\t\t}\n\t\tline := prefix + conn + n.name + \" \" + spark(n.series)\n\t\tif len(n.children) > 0 {\n\t\t\tt := 0.0\n\t\t\tfor _, v := range n.series {\n\t\t\t\tt += v\n\t\t\t}\n\t\t\tline += \" \" + strconv.FormatFloat(t, 'f', -1, 64)\n\t\t}\n\t\tfmt.Fprintln(w, line)\n\t\trender(w, n.children, prefix+ext, false)\n\t}\n}\n\nfunc buildVersion() string {\n\tif version != \"\" {\n\t\treturn version\n\t}\n\tif bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != \"\" {\n\t\treturn bi.Main.Version\n\t}\n\treturn \"dev\"\n}\n"
+  },
+  "uuidtime": {
+   "propose": {
+    "action": "propose",
+    "message": "UUID v1/v7の時刻を読み取り、指定時刻のv7を作る道具として作ります。",
+    "options": [],
+    "spec": {
+     "name": "uuidtime",
+     "summary": "uuidtime extracts the timestamp from UUIDv1/v7 values, or generates a UUIDv7 for a given time with -g.",
+     "kind": "convert",
+     "usage": "uuidtime [-z zone] [-g time] [uuid...]",
+     "flags": [
+      {
+       "name": "z",
+       "type": "string",
+       "default": "UTC",
+       "help": "IANA time zone for displayed datetimes and for -g datetimes without an offset"
+      },
+      {
+       "name": "g",
+       "type": "string",
+       "default": "",
+       "help": "generate a UUIDv7 for this time (RFC 3339 datetime, YYYY-MM-DD, or Unix time)"
+      }
+     ],
+     "behavior": [
+      "B1: The program imports time/tzdata. -z is resolved with time.LoadLocation; on failure print \"uuidtime: invalid time zone: <value>\" to stderr and exit 2. This check happens first, in both modes.",
+      "B2: Extract mode (when -g is empty): inputs are the positional arguments; if there are none, inputs are the lines of stdin. Each input is trimmed of surrounding whitespace; empty stdin lines are skipped. If there are no inputs at all, print \"uuidtime: no input\" to stderr and exit 2.",
+      "B3: A valid UUID is 8-4-4-4-12 hexadecimal digits (either case) separated by hyphens. The version is the first hex digit of the third group. Otherwise print \"uuidtime: <input>: invalid UUID\" to stderr.",
+      "B4: Version 7: unix ms = the first 12 hex digits (first two groups) read as an integer. Version 1: ticks = (time_hi & 0x0FFF)<<48 | time_mid<<32 | time_low; unix ms = (ticks - 122192928000000000) / 10000 with integer division. Any other version prints \"uuidtime: <input>: unsupported version <N>\" to stderr, N being the decimal version digit.",
+      "B5: For each valid input print to stdout \"<unix ms> <datetime>\" and a newline. The datetime is the instant converted to the -z zone, formatted with Go layout \"2006-01-02T15:04:05.000Z07:00\" (UTC shows as Z).",
+      "B6: Inputs are processed in order; an error on one input does not stop the rest. If any input failed, exit 1 at the end, otherwise 0.",
+      "B7: Generate mode (-g non-empty): if positional arguments are also given, print \"uuidtime: unexpected arguments with -g\" to stderr and exit 2. Stdin is not read.",
+      "B8: The -g value is parsed in this order: (a) only decimal digits (optional leading minus): an integer n; if |n| < 100000000000 it is Unix seconds (ms = n*1000), otherwise Unix milliseconds; (b) RFC 3339 datetime; (c) \"2006-01-02T15:04:05\" or \"2006-01-02\" interpreted in the -z zone. If nothing matches, or the resulting ms is negative or at least 2^48, print \"uuidtime: invalid -g value: <value>\" to stderr and exit 2.",
+      "B9: Output one lowercase UUIDv7 and a newline: the first 48 bits are the ms value, then version nibble 7, 12 random bits, variant bits 10, and 62 random bits, with randomness from crypto/rand. Exit 0.",
+      "B10: Unknown flags or flag errors are usage errors with exit 2."
+     ],
+     "deps": [],
+     "network": false,
+     "cases": [
+      {
+       "name": "v7 utc",
+       "args": [
+        "018f3b2e-7c00-7000-8000-000000000000"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "1714684853248 2024-05-02T21:20:53.248Z\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "v7 tokyo via stdin",
+       "args": [
+        "-z",
+        "Asia/Tokyo"
+       ],
+       "stdin": "018F3B2E-7C00-7000-8000-000000000000\n\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "1714684853248 2024-05-03T06:20:53.248+09:00\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "v1 epoch",
+       "args": [
+        "13814000-1dd2-11b2-8000-000000000000"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "0 1970-01-01T00:00:00.000Z\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "unsupported version continues",
+       "args": [
+        "550e8400-e29b-41d4-a716-446655440000",
+        "018f3b2e-7c00-7000-8000-000000000000"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 1,
+       "stdout": {
+        "mode": "exact",
+        "value": "1714684853248 2024-05-02T21:20:53.248Z\n"
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "uuidtime: 550e8400-e29b-41d4-a716-446655440000: unsupported version 4"
+       }
+      },
+      {
+       "name": "invalid uuid",
+       "args": [
+        "hello"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 1,
+       "stdout": {
+        "mode": "exact",
+        "value": ""
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "uuidtime: hello: invalid UUID"
+       }
+      },
+      {
+       "name": "generate from ms",
+       "args": [
+        "-g",
+        "1714684853248"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "regex",
+        "value": "^018f3b2e-7c00-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\n$"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "generate from seconds zero",
+       "args": [
+        "-g",
+        "0"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "regex",
+        "value": "^00000000-0000-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\n$"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "bad time zone",
+       "args": [
+        "-z",
+        "Nowhere/City",
+        "018f3b2e-7c00-7000-8000-000000000000"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 2,
+       "stdout": {
+        "mode": "exact",
+        "value": ""
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "uuidtime: invalid time zone: Nowhere/City"
+       }
+      }
+     ]
+    }
+   },
+   "source": "// uuidtime: uuidtime extracts the timestamp from UUIDv1/v7 values, or generates a UUIDv7 for a given time with -g.\npackage main\n\nimport (\n\t\"bufio\"\n\t\"crypto/rand\"\n\t\"errors\"\n\t\"flag\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n\t\"regexp\"\n\t\"runtime/debug\"\n\t\"strconv\"\n\t\"strings\"\n\t\"time\"\n\t_ \"time/tzdata\"\n)\n\n// version is set at release time with -ldflags \"-X main.version=v1.2.3\".\nvar version = \"\"\n\nconst usage = `uuidtime extracts the timestamp from UUIDv1/v7 values, or generates a UUIDv7 for a given time with -g.\n\nUsage:\n  uuidtime [-z zone] [-g time] [uuid...]\n\nExamples:\n  uuidtime 018f3b2e-7c00-7000-8000-000000000000\n  uuidtime -z Asia/Tokyo 018f3b2e-7c00-7000-8000-000000000000\n  uuidtime -g 2024-05-02T21:20:53Z\n\nFlags:\n`\n\nvar (\n\tuuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)\n\tintRe  = regexp.MustCompile(`^-?[0-9]+$`)\n)\n\nfunc main() {\n\tos.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))\n}\n\nfunc parseGen(v string, loc *time.Location) (int64, bool) {\n\tvar ms int64\n\tok := false\n\tif intRe.MatchString(v) {\n\t\tn, err := strconv.ParseInt(v, 10, 64)\n\t\tif err != nil {\n\t\t\treturn 0, false\n\t\t}\n\t\tms, ok = n, true\n\t\tif n > -100000000000 && n < 100000000000 {\n\t\t\tms = n * 1000\n\t\t}\n\t} else if t, err := time.Parse(time.RFC3339, v); err == nil {\n\t\tms, ok = t.UnixMilli(), true\n\t} else {\n\t\tfor _, l := range []string{\"2006-01-02T15:04:05\", \"2006-01-02\"} {\n\t\t\tif t, err := time.ParseInLocation(l, v, loc); err == nil {\n\t\t\t\tms, ok = t.UnixMilli(), true\n\t\t\t\tbreak\n\t\t\t}\n\t\t}\n\t}\n\tif !ok || ms < 0 || ms >= 1<<48 {\n\t\treturn 0, false\n\t}\n\treturn ms, true\n}\n\n// extract returns unix ms or an error message.\nfunc extract(in string) (int64, string) {\n\tif !uuidRe.MatchString(in) {\n\t\treturn 0, \"invalid UUID\"\n\t}\n\tver, _ := strconv.ParseUint(in[14:15], 16, 8)\n\tswitch ver {\n\tcase 7:\n\t\tn, _ := strconv.ParseUint(in[0:8]+in[9:13], 16, 64)\n\t\treturn int64(n), \"\"\n\tcase 1:\n\t\tlo, _ := strconv.ParseUint(in[0:8], 16, 64)\n\t\tmid, _ := strconv.ParseUint(in[9:13], 16, 64)\n\t\thi, _ := strconv.ParseUint(in[14:18], 16, 64)\n\t\tticks := (hi&0x0FFF)<<48 | mid<<32 | lo\n\t\treturn (int64(ticks) - 122192928000000000) / 10000, \"\"\n\t}\n\treturn 0, fmt.Sprintf(\"unsupported version %d\", ver)\n}\n\n// run is the whole program. It returns the exit code:\n// 0 success, 1 failure, 2 usage error.\nfunc run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {\n\tfs := flag.NewFlagSet(\"uuidtime\", flag.ContinueOnError)\n\tfs.SetOutput(stderr)\n\tfs.Usage = func() {}\n\tshowVersion := fs.Bool(\"version\", false, \"print version and exit\")\n\tzone := fs.String(\"z\", \"UTC\", \"IANA time zone for displayed datetimes and for -g datetimes without an offset\")\n\tgen := fs.String(\"g\", \"\", \"generate a UUIDv7 for this time (RFC 3339 datetime, YYYY-MM-DD, or Unix time)\")\n\tif err := fs.Parse(args); err != nil {\n\t\tif errors.Is(err, flag.ErrHelp) {\n\t\t\tfmt.Fprint(stdout, usage)\n\t\t\tfs.SetOutput(stdout)\n\t\t\tfs.PrintDefaults()\n\t\t\treturn 0\n\t\t}\n\t\tfmt.Fprintln(stderr, \"Run 'uuidtime -h' for usage.\")\n\t\treturn 2\n\t}\n\tif *showVersion {\n\t\tfmt.Fprintln(stdout, buildVersion())\n\t\treturn 0\n\t}\n\n\tloc, err := time.LoadLocation(*zone)\n\tif err != nil {\n\t\tfmt.Fprintln(stderr, \"uuidtime: invalid time zone: \"+*zone)\n\t\treturn 2\n\t}\n\n\tif *gen != \"\" {\n\t\tif fs.NArg() > 0 {\n\t\t\tfmt.Fprintln(stderr, \"uuidtime: unexpected arguments with -g\")\n\t\t\treturn 2\n\t\t}\n\t\tms, ok := parseGen(*gen, loc)\n\t\tif !ok {\n\t\t\tfmt.Fprintln(stderr, \"uuidtime: invalid -g value: \"+*gen)\n\t\t\treturn 2\n\t\t}\n\t\tvar b [16]byte\n\t\tif _, err := rand.Read(b[:]); err != nil {\n\t\t\tfmt.Fprintln(stderr, \"uuidtime: \"+err.Error())\n\t\t\treturn 1\n\t\t}\n\t\tfor i := 0; i < 6; i++ {\n\t\t\tb[i] = byte(ms >> (8 * (5 - i)))\n\t\t}\n\t\tb[6] = 0x70 | b[6]&0x0f\n\t\tb[8] = 0x80 | b[8]&0x3f\n\t\tfmt.Fprintf(stdout, \"%x-%x-%x-%x-%x\\n\", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])\n\t\treturn 0\n\t}\n\n\tvar inputs []string\n\tif fs.NArg() > 0 {\n\t\tfor _, a := range fs.Args() {\n\t\t\tinputs = append(inputs, strings.TrimSpace(a))\n\t\t}\n\t} else {\n\t\tif f, ok := stdin.(*os.File); ok {\n\t\t\tif st, err := f.Stat(); err == nil && st.Mode()&os.ModeCharDevice != 0 {\n\t\t\t\tfmt.Fprintln(stderr, \"Run 'uuidtime -h' for usage.\")\n\t\t\t\treturn 2\n\t\t\t}\n\t\t}\n\t\tsc := bufio.NewScanner(stdin)\n\t\tsc.Buffer(make([]byte, 64*1024), 1<<20)\n\t\tfor sc.Scan() {\n\t\t\tif l := strings.TrimSpace(sc.Text()); l != \"\" {\n\t\t\t\tinputs = append(inputs, l)\n\t\t\t}\n\t\t}\n\t}\n\tif len(inputs) == 0 {\n\t\tfmt.Fprintln(stderr, \"uuidtime: no input\")\n\t\treturn 2\n\t}\n\tcode := 0\n\tfor _, in := range inputs {\n\t\tms, msg := extract(in)\n\t\tif msg != \"\" {\n\t\t\tfmt.Fprintf(stderr, \"uuidtime: %s: %s\\n\", in, msg)\n\t\t\tcode = 1\n\t\t\tcontinue\n\t\t}\n\t\tt := time.UnixMilli(ms).In(loc)\n\t\tfmt.Fprintf(stdout, \"%d %s\\n\", ms, t.Format(\"2006-01-02T15:04:05.000Z07:00\"))\n\t}\n\treturn code\n}\n\nfunc buildVersion() string {\n\tif version != \"\" {\n\t\treturn version\n\t}\n\tif bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != \"\" {\n\t\treturn bi.Main.Version\n\t}\n\treturn \"dev\"\n}\n"
+  },
+  "uuidera": {
+   "propose": {
+    "action": "propose",
+    "message": "UUIDv1/v7の生成時刻を和暦と日本時間で表示する道具として作ります。",
+    "options": [],
+    "spec": {
+     "name": "uuidera",
+     "summary": "uuidera reads v1 or v7 UUIDs from arguments or stdin and prints their embedded time in JST with the Japanese era.",
+     "kind": "convert",
+     "usage": "uuidera [uuid ...]",
+     "flags": [],
+     "behavior": [
+      "B1: If one or more arguments are given, each argument is one input and stdin is not read. Otherwise each line of stdin is one input.",
+      "B2: Each input is trimmed of leading and trailing whitespace. Empty inputs are skipped silently. No inputs at all means no output and exit 0.",
+      "B3: A valid UUID is exactly 36 characters in hyphenated 8-4-4-4-12 form of hex digits, either case. Otherwise print to stderr \"uuidera: <input>: invalid UUID\" and continue.",
+      "B4: The version is the high nibble of the third group. Version 1: the timestamp is the 60-bit value (time_hi without the version nibble, then time_mid, then time_low) in 100ns ticks since 1582-10-15 00:00:00 UTC. Version 7: the first 48 bits are Unix milliseconds. Sub-second parts are truncated.",
+      "B5: Any other version prints to stderr \"uuidera: <input>: unsupported version <N>\" (N decimal) and continues.",
+      "B6: The instant is converted to a fixed UTC+9 zone. On success print to stdout \"<input as trimmed> <date> HH:MM:SS JST\" and a newline; HH, MM, SS are two digits, month and day have no padding.",
+      "B7: <date> is \"<era><Y>年<M>月<D>日\". Eras by JST date: 令和 from 2019-05-01, 平成 from 1989-01-08, 昭和 from 1926-12-25, 大正 from 1912-07-30, 明治 from 1873-01-01. Era year = Gregorian year - era start year + 1, written 元年 when it is 1, otherwise the number.",
+      "B8: Before 1873-01-01 JST the date is \"<Y>年<M>月<D>日\" with the Gregorian year and no era.",
+      "B9: Inputs are processed in order; valid ones are printed even if others fail. Exit 1 if any input failed, else 0. An unknown flag gives a usage message on stderr and exit 2."
+     ],
+     "deps": [],
+     "network": false,
+     "cases": [
+      {
+       "name": "example v7",
+       "args": [
+        "017F22E2-79B0-7CC3-98C4-DC0C0C07398F"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "017F22E2-79B0-7CC3-98C4-DC0C0C07398F 令和4年2月23日 04:22:22 JST\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "lowercase echoed as given",
+       "args": [
+        "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "017f22e2-79b0-7cc3-98c4-dc0c0c07398f 令和4年2月23日 04:22:22 JST\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "v7 unix epoch",
+       "args": [
+        "00000000-0000-7000-8000-000000000000"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "00000000-0000-7000-8000-000000000000 昭和45年1月1日 09:00:00 JST\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "v1 gregorian epoch, no era",
+       "args": [
+        "00000000-0000-1000-8000-000000000000"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "00000000-0000-1000-8000-000000000000 1582年10月15日 09:00:00 JST\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "v1 unix epoch",
+       "args": [
+        "13814000-1DD2-11B2-8000-000000000000"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "13814000-1DD2-11B2-8000-000000000000 昭和45年1月1日 09:00:00 JST\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "stdin with blanks and bad line",
+       "args": [],
+       "stdin": "00000000-0000-7000-8000-000000000000\n\n   \nnot-a-uuid\n",
+       "files": [],
+       "exit": 1,
+       "stdout": {
+        "mode": "exact",
+        "value": "00000000-0000-7000-8000-000000000000 昭和45年1月1日 09:00:00 JST\n"
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "uuidera: not-a-uuid: invalid UUID"
+       }
+      },
+      {
+       "name": "v4 unsupported",
+       "args": [
+        "550e8400-e29b-41d4-a716-446655440000"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 1,
+       "stdout": {
+        "mode": "exact",
+        "value": ""
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "uuidera: 550e8400-e29b-41d4-a716-446655440000: unsupported version 4"
+       }
+      },
+      {
+       "name": "unknown flag",
+       "args": [
+        "-x"
+       ],
+       "stdin": "",
+       "files": [],
+       "exit": 2,
+       "stdout": {
+        "mode": "any",
+        "value": ""
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      }
+     ]
+    }
+   },
+   "source": "// uuidera: uuidera reads v1 or v7 UUIDs from arguments or stdin and prints their embedded time in JST with the Japanese era.\npackage main\n\nimport (\n\t\"bufio\"\n\t\"errors\"\n\t\"flag\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n\t\"runtime/debug\"\n\t\"strconv\"\n\t\"strings\"\n\t\"time\"\n)\n\n// version is set at release time with -ldflags \"-X main.version=v1.2.3\".\nvar version = \"\"\n\nconst usage = `uuidera reads v1 or v7 UUIDs from arguments or stdin and prints their embedded time in JST with the Japanese era.\n\nUsage:\n  uuidera [uuid ...]\n\nExamples:\n  uuidera 017F22E2-79B0-7CC3-98C4-DC0C0C07398F\n  uuidera 13814000-1DD2-11B2-8000-000000000000\n  echo 00000000-0000-7000-8000-000000000000 | uuidera\n\nFlags:\n`\n\nfunc main() {\n\tos.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))\n}\n\n// run is the whole program. It returns the exit code:\n// 0 success, 1 failure, 2 usage error.\nfunc run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {\n\tfs := flag.NewFlagSet(\"uuidera\", flag.ContinueOnError)\n\tfs.SetOutput(stderr)\n\tfs.Usage = func() {}\n\tshowVersion := fs.Bool(\"version\", false, \"print version and exit\")\n\tif err := fs.Parse(args); err != nil {\n\t\tif errors.Is(err, flag.ErrHelp) {\n\t\t\tfmt.Fprint(stdout, usage)\n\t\t\tfs.SetOutput(stdout)\n\t\t\tfs.PrintDefaults()\n\t\t\treturn 0\n\t\t}\n\t\tfmt.Fprintln(stderr, \"Run 'uuidera -h' for usage.\")\n\t\treturn 2\n\t}\n\tif *showVersion {\n\t\tfmt.Fprintln(stdout, buildVersion())\n\t\treturn 0\n\t}\n\n\tvar inputs []string\n\tif fs.NArg() > 0 {\n\t\tinputs = fs.Args()\n\t} else {\n\t\tif f, ok := stdin.(*os.File); ok {\n\t\t\tif st, err := f.Stat(); err == nil && st.Mode()&os.ModeCharDevice != 0 {\n\t\t\t\tfmt.Fprintln(stderr, \"Run 'uuidera -h' for usage.\")\n\t\t\t\treturn 2\n\t\t\t}\n\t\t}\n\t\tsc := bufio.NewScanner(stdin)\n\t\tsc.Buffer(make([]byte, 64*1024), 16*1024*1024)\n\t\tfor sc.Scan() {\n\t\t\tinputs = append(inputs, sc.Text())\n\t\t}\n\t\tif err := sc.Err(); err != nil {\n\t\t\tfmt.Fprintln(stderr, \"uuidera: \"+err.Error())\n\t\t\treturn 1\n\t\t}\n\t}\n\n\tcode := 0\n\tfor _, in := range inputs {\n\t\tin = strings.TrimSpace(in)\n\t\tif in == \"\" {\n\t\t\tcontinue\n\t\t}\n\t\tout, msg := convert(in)\n\t\tif msg != \"\" {\n\t\t\tfmt.Fprintf(stderr, \"uuidera: %s: %s\\n\", in, msg)\n\t\t\tcode = 1\n\t\t\tcontinue\n\t\t}\n\t\tfmt.Fprintln(stdout, out)\n\t}\n\treturn code\n}\n\nfunc validUUID(s string) bool {\n\tif len(s) != 36 {\n\t\treturn false\n\t}\n\tfor i := 0; i < 36; i++ {\n\t\tc := s[i]\n\t\tif i == 8 || i == 13 || i == 18 || i == 23 {\n\t\t\tif c != '-' {\n\t\t\t\treturn false\n\t\t\t}\n\t\t\tcontinue\n\t\t}\n\t\tif !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F') {\n\t\t\treturn false\n\t\t}\n\t}\n\treturn true\n}\n\ntype era struct {\n\tname    string\n\ty, m, d int\n}\n\nvar eras = []era{\n\t{\"令和\", 2019, 5, 1},\n\t{\"平成\", 1989, 1, 8},\n\t{\"昭和\", 1926, 12, 25},\n\t{\"大正\", 1912, 7, 30},\n\t{\"明治\", 1873, 1, 1},\n}\n\nfunc convert(in string) (string, string) {\n\tif !validUUID(in) {\n\t\treturn \"\", \"invalid UUID\"\n\t}\n\th := func(s string) uint64 {\n\t\tv, _ := strconv.ParseUint(s, 16, 64)\n\t\treturn v\n\t}\n\tver := h(in[14:15])\n\tvar t time.Time\n\tswitch ver {\n\tcase 1:\n\t\tticks := h(in[15:18])<<48 | h(in[9:13])<<32 | h(in[0:8])\n\t\tsec := int64(ticks/10000000) - 12219292800\n\t\tt = time.Unix(sec, 0)\n\tcase 7:\n\t\tms := h(in[0:8])<<16 | h(in[9:13])\n\t\tt = time.Unix(int64(ms/1000), 0)\n\tdefault:\n\t\treturn \"\", fmt.Sprintf(\"unsupported version %d\", ver)\n\t}\n\tt = t.In(time.FixedZone(\"JST\", 9*3600))\n\ty, mo, d := t.Date()\n\tkey := y*10000 + int(mo)*100 + d\n\tdate := \"\"\n\tfor _, e := range eras {\n\t\tif key >= e.y*10000+e.m*100+e.d {\n\t\t\tey := strconv.Itoa(y - e.y + 1)\n\t\t\tif y-e.y+1 == 1 {\n\t\t\t\tey = \"元\"\n\t\t\t}\n\t\t\tdate = fmt.Sprintf(\"%s%s年%d月%d日\", e.name, ey, int(mo), d)\n\t\t\tbreak\n\t\t}\n\t}\n\tif date == \"\" {\n\t\tdate = fmt.Sprintf(\"%d年%d月%d日\", y, int(mo), d)\n\t}\n\treturn fmt.Sprintf(\"%s %s %02d:%02d:%02d JST\", in, date, t.Hour(), t.Minute(), t.Second()), \"\"\n}\n\nfunc buildVersion() string {\n\tif version != \"\" {\n\t\treturn version\n\t}\n\tif bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != \"\" {\n\t\treturn bi.Main.Version\n\t}\n\treturn \"dev\"\n}\n"
+  },
+  "tsbar": {
+   "propose": {
+    "action": "propose",
+    "message": "UNIX時刻の列を時間帯ごとに数えて横棒グラフにする道具として作ります。",
+    "options": [],
+    "spec": {
+     "name": "tsbar",
+     "summary": "tsbar reads UNIX timestamps one per line and prints a horizontal bar chart of counts per minute, hour or day.",
+     "kind": "display",
+     "usage": "tsbar [-u minute|hour|day] [-w width] [-z] [file ...]",
+     "flags": [
+      {
+       "name": "u",
+       "type": "string",
+       "default": "hour",
+       "help": "bucket unit: minute, hour or day"
+      },
+      {
+       "name": "w",
+       "type": "int",
+       "default": "40",
+       "help": "maximum bar width in blocks (at least 1)"
+      },
+      {
+       "name": "z",
+       "type": "bool",
+       "default": "false",
+       "help": "use UTC instead of JST (UTC+9)"
+      }
+     ],
+     "behavior": [
+      "B1: Input is read from each file named in the arguments, in order, or from stdin if there are no file arguments. Lines are split on newline; surrounding whitespace is trimmed.",
+      "B2: Blank lines are skipped. A valid line consists only of 1 to 18 ASCII digits. A value with 13 or more digits is milliseconds (integer-divide by 1000); otherwise it is seconds.",
+      "B3: An invalid line prints to stderr: tsbar: NAME:LINE: invalid timestamp \"TEXT\" (NAME is the file name as given, or stdin; LINE is the 1-based line number within that input; TEXT is the trimmed line). It is not counted, processing continues, and the final exit code is 1.",
+      "B4: An unreadable file prints 'tsbar: ' followed by the error message to stderr, is skipped, and the final exit code is 1.",
+      "B5: The time zone is JST (fixed offset +9 hours) by default; with -z it is UTC. Each timestamp in seconds is shifted by the offset, then truncated down to the start of its minute (-u minute), hour (-u hour) or day (-u day).",
+      "B6: Output has one line per bucket from the earliest to the latest bucket, including every bucket in between even when its count is 0. Line format: LABEL + one space + BAR + one space + COUNT + newline. LABEL is YYYY-MM-DD HH:MM of the bucket start (for day the time is 00:00).",
+      "B7: BAR is the character █ (U+2588) repeated N times, where N = count*W/MAX using integer division (W is the -w value, MAX the largest bucket count), raised to 1 if count > 0 and N would be 0. A bucket with count 0 has an empty BAR, so its line is LABEL + two spaces + 0.",
+      "B8: If -u is not minute, hour or day, or -w is less than 1, or an unknown flag is given, print 'tsbar: ' plus the reason to stderr and exit 2 with no stdout.",
+      "B9: If no valid timestamps are found, print nothing to stdout; exit 0 unless B3 or B4 applied.",
+      "B10: If the range would need more than 100000 buckets, print 'tsbar: range too large' to stderr, print nothing to stdout and exit 1.",
+      "B11: Exit 0 on success, 1 on any failure in B3, B4 or B10; valid lines are still charted when B3 or B4 occurred."
+     ],
+     "deps": [],
+     "network": false,
+     "cases": [
+      {
+       "name": "example-jst-hour",
+       "args": [
+        "-w",
+        "10"
+       ],
+       "stdin": "1700000000\n1700000100\n1700003700\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "2023-11-15 07:00 ██████████ 2\n2023-11-15 08:00 █████ 1\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "zero-gap",
+       "args": [
+        "-w",
+        "5"
+       ],
+       "stdin": "1700000000\n1700007200\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "2023-11-15 07:00 █████ 1\n2023-11-15 08:00  0\n2023-11-15 09:00 █████ 1\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "utc",
+       "args": [
+        "-z",
+        "-w",
+        "3"
+       ],
+       "stdin": "1700000000\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "2023-11-14 22:00 ███ 1\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "millis-day",
+       "args": [
+        "-u",
+        "day",
+        "-w",
+        "4"
+       ],
+       "stdin": "1700000000000\n",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "2023-11-15 00:00 ████ 1\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "invalid-line",
+       "args": [],
+       "stdin": "abc\n1700000000\n",
+       "files": [],
+       "exit": 1,
+       "stdout": {
+        "mode": "contains",
+        "value": "2023-11-15 07:00 "
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "tsbar: stdin:1: invalid timestamp \"abc\""
+       }
+      },
+      {
+       "name": "bad-unit",
+       "args": [
+        "-u",
+        "week"
+       ],
+       "stdin": "1700000000\n",
+       "files": [],
+       "exit": 2,
+       "stdout": {
+        "mode": "exact",
+        "value": ""
+       },
+       "stderr": {
+        "mode": "contains",
+        "value": "tsbar:"
+       }
+      },
+      {
+       "name": "empty-input",
+       "args": [],
+       "stdin": "",
+       "files": [],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": ""
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      },
+      {
+       "name": "file-minute",
+       "args": [
+        "-u",
+        "minute",
+        "-w",
+        "2",
+        "-z",
+        "t.txt"
+       ],
+       "stdin": "",
+       "files": [
+        {
+         "name": "t.txt",
+         "content": "1700000000\n1700000060\n"
+        }
+       ],
+       "exit": 0,
+       "stdout": {
+        "mode": "exact",
+        "value": "2023-11-14 22:13 ██ 1\n2023-11-14 22:14 ██ 1\n"
+       },
+       "stderr": {
+        "mode": "any",
+        "value": ""
+       }
+      }
+     ]
+    }
+   },
+   "source": "// tsbar: tsbar reads UNIX timestamps one per line and prints a horizontal bar chart of counts per minute, hour or day.\npackage main\n\nimport (\n\t\"bufio\"\n\t\"errors\"\n\t\"flag\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n\t\"runtime/debug\"\n\t\"strconv\"\n\t\"strings\"\n\t\"time\"\n)\n\n// version is set at release time with -ldflags \"-X main.version=v1.2.3\".\nvar version = \"\"\n\nconst usage = `tsbar reads UNIX timestamps one per line and prints a horizontal bar chart of counts per minute, hour or day.\n\nUsage:\n  tsbar [-u minute|hour|day] [-w width] [-z] [file ...]\n\nExamples:\n  tsbar -w 20 times.txt\n  tsbar -u day -z times.txt more.txt\n  cat times.txt | tsbar -u minute\n\nFlags:\n`\n\nfunc main() {\n\tos.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))\n}\n\n// run is the whole program. It returns the exit code:\n// 0 success, 1 failure, 2 usage error.\nfunc run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {\n\tfs := flag.NewFlagSet(\"tsbar\", flag.ContinueOnError)\n\tfs.SetOutput(stderr)\n\tfs.Usage = func() {}\n\tshowVersion := fs.Bool(\"version\", false, \"print version and exit\")\n\tunitName := fs.String(\"u\", \"hour\", \"bucket unit: minute, hour or day\")\n\twidth := fs.Int(\"w\", 40, \"maximum bar width in blocks (at least 1)\")\n\tutc := fs.Bool(\"z\", false, \"use UTC instead of JST (UTC+9)\")\n\tif err := fs.Parse(args); err != nil {\n\t\tif errors.Is(err, flag.ErrHelp) {\n\t\t\tfmt.Fprint(stdout, usage)\n\t\t\tfs.SetOutput(stdout)\n\t\t\tfs.PrintDefaults()\n\t\t\treturn 0\n\t\t}\n\t\tfmt.Fprintln(stderr, \"Run 'tsbar -h' for usage.\")\n\t\treturn 2\n\t}\n\tif *showVersion {\n\t\tfmt.Fprintln(stdout, buildVersion())\n\t\treturn 0\n\t}\n\n\tvar unit int64\n\tswitch *unitName {\n\tcase \"minute\":\n\t\tunit = 60\n\tcase \"hour\":\n\t\tunit = 3600\n\tcase \"day\":\n\t\tunit = 86400\n\tdefault:\n\t\tfmt.Fprintf(stderr, \"tsbar: invalid unit %q: must be minute, hour or day\\n\", *unitName)\n\t\treturn 2\n\t}\n\tif *width < 1 {\n\t\tfmt.Fprintln(stderr, \"tsbar: width must be at least 1\")\n\t\treturn 2\n\t}\n\tvar offset int64 = 9 * 3600\n\tif *utc {\n\t\toffset = 0\n\t}\n\n\tfiles := fs.Args()\n\tif len(files) == 0 {\n\t\tif f, ok := stdin.(*os.File); ok {\n\t\t\tif st, err := f.Stat(); err == nil && st.Mode()&os.ModeCharDevice != 0 {\n\t\t\t\tfmt.Fprintln(stderr, \"Run 'tsbar -h' for usage.\")\n\t\t\t\treturn 2\n\t\t\t}\n\t\t}\n\t}\n\n\tcode := 0\n\tcounts := map[int64]int64{}\n\tvar minB, maxB int64\n\thave := false\n\tnotDigit := func(r rune) bool { return r < '0' || r > '9' }\n\n\tprocess := func(name string, r io.Reader) {\n\t\tbr := bufio.NewReader(r)\n\t\tln := 0\n\t\tfor {\n\t\t\tline, err := br.ReadString('\\n')\n\t\t\tif line != \"\" {\n\t\t\t\tln++\n\t\t\t\tt := strings.TrimSpace(line)\n\t\t\t\tif t == \"\" {\n\t\t\t\t} else if len(t) > 18 || strings.IndexFunc(t, notDigit) >= 0 {\n\t\t\t\t\tfmt.Fprintf(stderr, \"tsbar: %s:%d: invalid timestamp %q\\n\", name, ln, t)\n\t\t\t\t\tcode = 1\n\t\t\t\t} else {\n\t\t\t\t\tv, _ := strconv.ParseInt(t, 10, 64)\n\t\t\t\t\tif len(t) >= 13 {\n\t\t\t\t\t\tv /= 1000\n\t\t\t\t\t}\n\t\t\t\t\tv += offset\n\t\t\t\t\tb := v - v%unit\n\t\t\t\t\tcounts[b]++\n\t\t\t\t\tif !have || b < minB {\n\t\t\t\t\t\tminB = b\n\t\t\t\t\t}\n\t\t\t\t\tif !have || b > maxB {\n\t\t\t\t\t\tmaxB = b\n\t\t\t\t\t}\n\t\t\t\t\thave = true\n\t\t\t\t}\n\t\t\t}\n\t\t\tif err != nil {\n\t\t\t\tif err != io.EOF {\n\t\t\t\t\tfmt.Fprintf(stderr, \"tsbar: %v\\n\", err)\n\t\t\t\t\tcode = 1\n\t\t\t\t}\n\t\t\t\treturn\n\t\t\t}\n\t\t}\n\t}\n\n\tif len(files) == 0 {\n\t\tprocess(\"stdin\", stdin)\n\t}\n\tfor _, name := range files {\n\t\tf, err := os.Open(name)\n\t\tif err != nil {\n\t\t\tfmt.Fprintf(stderr, \"tsbar: %v\\n\", err)\n\t\t\tcode = 1\n\t\t\tcontinue\n\t\t}\n\t\tprocess(name, f)\n\t\tf.Close()\n\t}\n\n\tif !have {\n\t\treturn code\n\t}\n\tif (maxB-minB)/unit+1 > 100000 {\n\t\tfmt.Fprintln(stderr, \"tsbar: range too large\")\n\t\treturn 1\n\t}\n\tvar max int64\n\tfor _, c := range counts {\n\t\tif c > max {\n\t\t\tmax = c\n\t\t}\n\t}\n\tvar sb strings.Builder\n\tfor b := minB; b <= maxB; b += unit {\n\t\tc := counts[b]\n\t\tn := c * int64(*width) / max\n\t\tif c > 0 && n == 0 {\n\t\t\tn = 1\n\t\t}\n\t\tsb.WriteString(time.Unix(b, 0).UTC().Format(\"2006-01-02 15:04\"))\n\t\tsb.WriteString(\" \" + strings.Repeat(\"█\", int(n)) + \" \")\n\t\tsb.WriteString(strconv.FormatInt(c, 10) + \"\\n\")\n\t}\n\tio.WriteString(stdout, sb.String())\n\treturn code\n}\n\nfunc buildVersion() string {\n\tif version != \"\" {\n\t\treturn version\n\t}\n\tif bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != \"\" {\n\t\treturn bi.Main.Version\n\t}\n\treturn \"dev\"\n}\n"
+  }
+ },
+ "jury": [
+  {
+   "name": "sparktree",
+   "score": 76,
+   "comment": "スラッシュ区切りの階層パスをツリーにまとめ、各ノードにスパークラインと合計値を添える組み合わせは意外性があり、メトリクスの内訳をひと目で見せたくなりますが、葉ノードに合計が出ないなど表示に少しむらがあります。"
+  },
+  {
+   "name": "uuidera",
+   "score": 51,
+   "comment": "UUIDの埋め込み時刻を和暦で読むという取り合わせは遊び心があって人に見せたくなる（ゼロUUIDが昭和45年になるのは楽しい）一方、中身はuuidtimeとほぼ同じで、出力をJSTに固定している点も惜しいです。"
+  },
+  {
+   "name": "uuidtime",
+   "score": 34,
+   "comment": "UUIDv1/v7の時刻抽出に加え、指定時刻のv7を生成できるのは実務で便利ですが、既存のUUIDデコーダと大差がなく驚きはほとんどありません。"
+  },
+  {
+   "name": "tsbar",
+   "score": 22,
+   "comment": "UNIX時刻を時間帯ごとに数えて横棒グラフにする堅実なヒストグラムで、空のバケットも表示するのは親切ですが、組み合わせとして意外性に乏しく、よくある集計ツールの域を出ません。"
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "gqr",
+  "summary": "gqr generates and shows QR code in your terminal.",
+  "kind": "display",
+  "usage": "gqr [-m message]",
+  "flags": [
+    {"name": "m", "type": "string", "default": "", "help": "message to encode"}
+  ],
+  "behavior": [
+    "B1: Encode the message given with -m as a QR code and print it to stdout.",
+    "B2: When -m is not given, read all of stdin as the message and remove one trailing newline if present.",
+    "B3: Print one line per row of the QR code. Every module is two space characters painted with an ANSI background colour: ESC[47m (white) for a light module, ESC[40m (black) for a dark module. End each line with ESC[0m and a newline.",
+    "B4: Surround the code with a quiet zone of light modules; the border the library produces by default is right. Every line has the same number of modules and the output is square.",
+    "B5: Use the medium error-correction level.",
+    "B6: If the message is empty, print 'gqr: empty message' to stderr and exit 1."
+  ],
+  "deps": ["github.com/skip2/go-qrcode"],
+  "network": false,
+  "cases": [
+    {
+      "name": "flag",
+      "args": ["-m", "foo"],
+      "exit": 0,
+      "stdout": {"min_lines": 21, "contains": ["\u001b[47m", "\u001b[40m", "\u001b[0m\n"]}
+    },
+    {
+      "name": "pipe",
+      "stdin": "bar\n",
+      "exit": 0,
+      "stdout": {"min_lines": 21, "contains": ["\u001b[47m", "\u001b[40m"]}
+    },
+    {
+      "name": "empty-flag",
+      "args": ["-m", ""],
+      "stdin": "",
+      "exit": 1,
+      "stderr": {"contains": ["gqr: empty message"]}
+    },
+    {
+      "name": "empty-pipe",
+      "stdin": "\n",
+      "exit": 1,
+      "stderr": {"contains": ["gqr: empty message"]}
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+# Orders the way a customer would type them, one per line.
+# They are chosen so that the expected output is easy to get subtly wrong.
+西暦の日付を和暦に変換したい（例: 2019-05-01 → 令和元年5月1日）
+文字数・バイト数・表示幅を数えたい。全角文字は幅2で数える
+CSVをMarkdownの表にしたい。列の幅をそろえて見やすく
+数値の列を受け取ってスパークライン（▁▂▃▄▅▆▇█）で表示したい
+テキストを指定した幅で折り返したい。日本語は幅2として数える
+UNIX時刻とRFC3339の日時を相互に変換したい
